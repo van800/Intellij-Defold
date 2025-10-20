@@ -18,7 +18,7 @@ class MobRValueTest {
         assertThat(rv).isInstanceOfSatisfying(MobRValue.VectorN::class.java) { vector ->
             assertThat(vector.components).containsExactly(1.0, 2.0, 3.0)
             assertThat(vector.typeLabel).isEqualTo("vector3")
-            assertThat(vector.preview).isEqualTo("(1.0, 2.0, 3.0)")
+            assertThat(vector.preview).isEqualTo("(1, 2, 3)")
         }
     }
 
@@ -32,7 +32,7 @@ class MobRValueTest {
         assertThat(rv).isInstanceOfSatisfying(MobRValue.VectorN::class.java) { vector ->
             assertThat(vector.components).containsExactly(1.0, 2.0, 3.0, 4.0)
             assertThat(vector.typeLabel).isEqualTo("vector4")
-            assertThat(vector.preview).isEqualTo("(1.0, 2.0, 3.0, 4.0)")
+            assertThat(vector.preview).isEqualTo("(1, 2, 3, 4)")
         }
     }
 
@@ -46,8 +46,43 @@ class MobRValueTest {
         assertThat(rv).isInstanceOfSatisfying(MobRValue.Quat::class.java) { quat ->
             assertThat(quat.components).containsExactly(1.0, 0.0, 0.0, 0.0)
             assertThat(quat.typeLabel).isEqualTo("quat")
-            assertThat(quat.preview).isEqualTo("(1.0, 0.0, 0.0, 0.0)")
+            assertThat(quat.preview).isEqualTo("(1, 0, 0, 0)")
         }
+    }
+
+    @Test
+    fun `vector with decimal values preserves decimals in preview`() {
+        val raw = LuaString.valueOf("vmath.vector3(1.5, 2.75, 0)")
+        val table = LuaTable().apply {
+            set(1, raw)
+        }
+        val rv = MobRValue.fromLuaEntry("test_vector", table)
+        assertThat(rv).isInstanceOfSatisfying(MobRValue.VectorN::class.java) { vector ->
+            assertThat(vector.components).containsExactly(1.5, 2.75, 0.0)
+            assertThat(vector.preview).isEqualTo("(1.5, 2.75, 0)")
+        }
+    }
+
+    @Test
+    fun `vector components are formatted without unnecessary decimals`() {
+        val vector = MobRValue.VectorN("vmath.vector3(1, 2, 3)", listOf(1.0, 2.0, 3.0))
+        val children = vector.toMobVarList("myVector")
+        
+        assertThat(children).hasSize(3)
+        assertThat(children)
+            .extracting<String> { (it.value as MobRValue.Num).content }
+            .containsExactly("1", "2", "3")
+    }
+
+    @Test
+    fun `vector components with decimals preserve decimal values`() {
+        val vector = MobRValue.VectorN("vmath.vector3(1.5, 2.75, 0)", listOf(1.5, 2.75, 0.0))
+        val children = vector.toMobVarList("myVector")
+        
+        assertThat(children).hasSize(3)
+        assertThat(children)
+            .extracting<String> { (it.value as MobRValue.Num).content }
+            .containsExactly("1.5", "2.75", "0")
     }
 
     @Test

@@ -45,7 +45,6 @@ dependencies {
             useInstaller = false
         }
 
-        bundledPlugins("com.intellij.java", "org.jetbrains.kotlin")
         plugins(
             "com.cppcxy.Intellij-EmmyLua:0.14.0.76-IDEA252",
             "com.redhat.devtools.lsp4ij:0.15.0",

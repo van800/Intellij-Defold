@@ -75,12 +75,14 @@ sealed class MobRValue {
     ) : DefoldObject() {
         override val hasChildren = true
         override val icon = AllIcons.Json.Array
-        override val preview by lazy { components.joinToString(", ", "(", ")") }
+        override val preview by lazy { 
+            components.joinToString(", ", "(", ")") { formatNumber(it) }
+        }
 
         fun toMobVarList(baseExpr: String): List<MobVariable> = listOf("x", "y", "z", "w")
             .take(components.size)
             .mapIndexed { index, name ->
-                val num = Num(components[index].toString())
+                val num = Num(formatNumber(components[index]))
                 MobVariable(name, num, child(baseExpr, name))
             }
     }
@@ -269,7 +271,7 @@ sealed class MobRValue {
         override val hasChildren = true
         override val icon = AllIcons.Json.Array
         override val preview = rows.joinToString(", ", "[", "]") {
-            it.joinToString(", ", "(", ")")
+            it.joinToString(", ", "(", ")") { num -> formatNumber(num) }
         }
 
         fun toMobVarList() = rows
@@ -310,6 +312,9 @@ sealed class MobRValue {
 
     companion object {
         fun varargName(index: Int): String = "(*vararg $index)"
+
+        private fun formatNumber(value: Double): String =
+            if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
 
         fun createVarargs(table: LuaTable): List<MobVariable> {
             val length = table.length()

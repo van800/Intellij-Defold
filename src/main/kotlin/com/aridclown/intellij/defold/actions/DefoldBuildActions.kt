@@ -11,8 +11,6 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread.BGT
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.Messages
-import org.jetbrains.kotlin.utils.addToStdlib.ifFalse
-import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 
 abstract class AbstractDefoldBuildAction(
     private val buildCommands: List<String>,
@@ -21,14 +19,14 @@ abstract class AbstractDefoldBuildAction(
     override fun getActionUpdateThread() = BGT
 
     override fun update(event: AnActionEvent): Unit = with(event) {
-        project.isDefoldProject.ifTrue {
+        if (project.isDefoldProject) {
             presentation.isEnabledAndVisible = true
         }
     }
 
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        project.isDefoldProject.ifFalse { return }
+        if (!project.isDefoldProject) return
 
         if (DefoldEditorConfig.loadEditorConfig() == null) {
             project.notifyError("Defold", "Defold editor installation not found.")
@@ -54,7 +52,7 @@ class DefoldCleanBuildProjectAction : AbstractDefoldBuildAction(
 ) {
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
-        project.isDefoldProject.ifFalse { return }
+        if (!project.isDefoldProject) return
 
         val confirmed = Messages.showOkCancelDialog(
             project,
