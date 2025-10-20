@@ -104,8 +104,11 @@ object DefoldAnnotationsManager {
         return $$"""
         {
             "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
-            "workspace.library": [ $$libraryPath ],
-            "workspace.checkThirdParty": false,
+            "workspace": {
+                "library": [ $$libraryPath ],
+                "checkThirdParty": false,
+                "ignoreDir": [ "debugger" ]
+            },
             "runtime": {
                 "version": "Lua 5.1",
                 "extensions": [ $$extensions ]
