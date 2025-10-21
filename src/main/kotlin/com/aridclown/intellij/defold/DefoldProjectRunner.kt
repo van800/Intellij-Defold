@@ -132,7 +132,7 @@ object DefoldProjectRunner {
         val services = RunnerServices(request.console)
 
         edtWriteAction(FileDocumentManager.getInstance()::saveAllDocuments)
-        request.project.getEngineDiscoveryService().stopActiveEngine()
+        request.project.getEngineDiscoveryService().stopEnginesForPort(request.debugPort)
 
         services.extractor.extractAndPrepareEngine(
             request.project, request.config, request.envData
@@ -188,6 +188,7 @@ object DefoldProjectRunner {
             project = request.project,
             enginePath = enginePath,
             enableDebugScript = request.enableDebugScript,
+            serverPort = request.serverPort,
             debugPort = request.debugPort,
             envData = request.envData
         )?.let(request.onEngineStarted)

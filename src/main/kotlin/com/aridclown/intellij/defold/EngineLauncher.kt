@@ -26,6 +26,7 @@ class EngineRunner(
         project: Project,
         enginePath: Path,
         enableDebugScript: Boolean,
+        serverPort: Int?,
         debugPort: Int?,
         envData: EnvironmentVariablesData
     ): OSProcessHandler? = runCatching {
@@ -40,11 +41,12 @@ class EngineRunner(
             val port = debugPort ?: DEFAULT_MOBDEBUG_PORT
             command
                 .withParameters("--config=bootstrap.debug_init_script=$INI_DEBUG_INIT_SCRIPT_VALUE")
+                .withEnvironment("DM_SERVICE_PORT", serverPort?.toString() ?: "8001")
                 .withEnvironment("MOBDEBUG_PORT", port.toString())
         }
 
         processExecutor.execute(command)
-            .also(project.getEngineDiscoveryService()::attachToProcess)
+            .also { handler -> project.getEngineDiscoveryService().attachToProcess(handler, debugPort) }
     }.onFailure { throwable ->
         console.printError("Failed to launch dmengine: ${throwable.message}")
     }.getOrNull()

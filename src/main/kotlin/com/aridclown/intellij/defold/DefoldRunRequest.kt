@@ -11,6 +11,7 @@ data class DefoldRunRequest(
     val config: DefoldEditorConfig,
     val console: ConsoleView,
     val enableDebugScript: Boolean = false,
+    val serverPort: Int? = null,
     val debugPort: Int? = null,
     val envData: EnvironmentVariablesData = EnvironmentVariablesData.DEFAULT,
     val buildCommands: List<String> = listOf("build"),
@@ -21,6 +22,7 @@ data class DefoldRunRequest(
             project: Project,
             console: ConsoleView,
             enableDebugScript: Boolean,
+            serverPort: Int? = null,
             debugPort: Int? = null,
             envData: EnvironmentVariablesData,
             buildCommands: List<String> = listOf("build"),
@@ -33,7 +35,7 @@ data class DefoldRunRequest(
             }
 
             return DefoldRunRequest(
-                project, config, console, enableDebugScript, debugPort, envData, buildCommands, onEngineStarted
+                project, config, console, enableDebugScript, serverPort, debugPort, envData, buildCommands, onEngineStarted
             )
         }
     }

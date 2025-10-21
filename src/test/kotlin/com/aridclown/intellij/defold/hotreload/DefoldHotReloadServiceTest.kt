@@ -42,12 +42,12 @@ class DefoldHotReloadServiceTest {
         val recording = recordingConsole()
         val dependencies = mockk<HotReloadDependencies>()
         every { dependencies.obtainConsole() } returns recording.console
-        every { dependencies.ensureReachableEngine(recording.console) } answers {
+        every { dependencies.ensureReachableEngines(recording.console) } answers {
             recording.console.print(
                 "[HotReload] Defold engine not reachable. Make sure the game is running from IntelliJ\n",
                 ERROR_OUTPUT
             )
-            null
+            emptyList()
         }
 
         hotReloadService.setDependenciesForTesting(dependencies)
@@ -64,7 +64,7 @@ class DefoldHotReloadServiceTest {
         val dependencies = mockk<HotReloadDependencies>()
         val endpoint = DefoldEngineEndpoint("127.0.0.1", 9000, null, System.currentTimeMillis())
         every { dependencies.obtainConsole() } returns recording.console
-        every { dependencies.ensureReachableEngine(recording.console) } returns endpoint
+        every { dependencies.ensureReachableEngines(recording.console) } returns listOf(endpoint)
         coEvery { dependencies.buildProject(recording.console) } returns false
 
         hotReloadService.setDependenciesForTesting(dependencies)
@@ -92,7 +92,7 @@ class DefoldHotReloadServiceTest {
         val dependencies = mockk<HotReloadDependencies>()
         val endpoint = DefoldEngineEndpoint("127.0.0.1", 9000, null, System.currentTimeMillis())
         every { dependencies.obtainConsole() } returns recording.console
-        every { dependencies.ensureReachableEngine(recording.console) } returns endpoint
+        every { dependencies.ensureReachableEngines(recording.console) } returns listOf(endpoint)
         coEvery { dependencies.buildProject(recording.console) } returns true
 
         hotReloadService.setDependenciesForTesting(dependencies)
@@ -121,7 +121,7 @@ class DefoldHotReloadServiceTest {
 
         val dependencies = mockk<HotReloadDependencies>()
         every { dependencies.obtainConsole() } returns recording.console
-        every { dependencies.ensureReachableEngine(recording.console) } returns endpoint
+        every { dependencies.ensureReachableEngines(recording.console) } returns listOf(endpoint)
         coEvery { dependencies.buildProject(recording.console) } coAnswers {
             Files.writeString(compiledFile, "updated")
             true
@@ -138,6 +138,41 @@ class DefoldHotReloadServiceTest {
         assertThat(capturedPayload).isNotNull
         val decoded = decodeResourcePaths(capturedPayload!!)
         assertThat(decoded).containsExactly("/main/player.scriptc")
+    }
+
+    @Test
+    fun `performHotReload should target all reachable engines`() {
+        val recording = recordingConsole()
+        val endpointA = DefoldEngineEndpoint("127.0.0.1", 9000, null, System.currentTimeMillis())
+        val endpointB = DefoldEngineEndpoint("127.0.0.2", 9001, null, System.currentTimeMillis())
+        val compiledFile = projectDir
+            .resolve("build")
+            .resolve("default")
+            .resolve("main")
+            .resolve("enemy.scriptc")
+
+        Files.createDirectories(compiledFile.parent)
+        Files.writeString(compiledFile, "v1")
+        hotReloadService.refreshBuildArtifacts()
+
+        val dependencies = mockk<HotReloadDependencies>()
+        every { dependencies.obtainConsole() } returns recording.console
+        every { dependencies.ensureReachableEngines(recording.console) } returns listOf(endpointA, endpointB)
+        coEvery { dependencies.buildProject(recording.console) } coAnswers {
+            Files.writeString(compiledFile, "v2")
+            true
+        }
+
+        val addressed = mutableListOf<DefoldEngineEndpoint>()
+        every { dependencies.sendResourceReload(any(), any()) } answers {
+            addressed += firstArg<DefoldEngineEndpoint>()
+        }
+
+        hotReloadService.setDependenciesForTesting(dependencies)
+
+        runBlocking { hotReloadService.performHotReload() }
+
+        assertThat(addressed).containsExactlyInAnyOrder(endpointA, endpointB)
     }
 
     @Test

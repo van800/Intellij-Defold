@@ -63,7 +63,8 @@ class DefoldHotReloadService(private val project: Project) {
 
     suspend fun performHotReload() {
         val console = runtime.obtainConsole()
-        val endpoint = runtime.ensureReachableEngine(console) ?: return
+        val endpoints = runtime.ensureReachableEngines(console)
+        if (endpoints.isEmpty()) return
 
         return try {
             // Ensure artifacts are cached
@@ -89,14 +90,15 @@ class DefoldHotReloadService(private val project: Project) {
 
             // Create a standard protobuf payload as expected by Defold engine
             val payload = createProtobufReloadPayload(changedArtifacts)
+
             // Send the reload command to the engine with changed resource paths
-            runtime.sendResourceReload(endpoint, payload)
+            endpoints.forEach { endpoint -> runtime.sendResourceReload(endpoint, payload) }
         } catch (e: Exception) {
             console.printError("Hot reload failed: ${e.message}")
         }
     }
 
-    fun hasReachableEngine(): Boolean = resolveEngineEndpoint() != null
+    fun hasReachableEngine(): Boolean = resolveEngineEndpoints().isNotEmpty()
 
     internal fun refreshBuildArtifacts() {
         val basePath = project.basePath?.let(Path::of)
@@ -183,8 +185,8 @@ class DefoldHotReloadService(private val project: Project) {
             old.etag != artifact.etag && isHotReloadable(artifact.normalizedPath)
         }
 
-    private fun resolveEngineEndpoint(): DefoldEngineEndpoint? =
-        project.getEngineDiscoveryService().currentEndpoint()
+    private fun resolveEngineEndpoints(): List<DefoldEngineEndpoint> =
+        project.getEngineDiscoveryService().currentEndpoints()
 
     private fun isEngineReachable(endpoint: DefoldEngineEndpoint, console: ConsoleView?): Boolean = try {
         // Try to access the engine info endpoint to check its capabilities
@@ -324,14 +326,12 @@ class DefoldHotReloadService(private val project: Project) {
         override fun obtainConsole(): ConsoleView =
             project.findActiveConsole() ?: project.ensureConsole("Defold Hot Reload")
 
-        override fun ensureReachableEngine(console: ConsoleView): DefoldEngineEndpoint? {
-            val endpoint = resolveEngineEndpoint()
-            if (endpoint == null || !isEngineReachable(endpoint, console)) {
+        override fun ensureReachableEngines(console: ConsoleView): List<DefoldEngineEndpoint> {
+            val reachable = resolveEngineEndpoints().filter { isEngineReachable(it, console) }
+            if (reachable.isEmpty()) {
                 console.printError("Defold engine not reachable. Make sure the game is running from IntelliJ")
-                return null
             }
-
-            return endpoint
+            return reachable
         }
 
         override suspend fun buildProject(console: ConsoleView): Boolean {
@@ -390,7 +390,7 @@ class DefoldHotReloadService(private val project: Project) {
 
 internal interface HotReloadDependencies {
     fun obtainConsole(): ConsoleView
-    fun ensureReachableEngine(console: ConsoleView): DefoldEngineEndpoint?
+    fun ensureReachableEngines(console: ConsoleView): List<DefoldEngineEndpoint>
     suspend fun buildProject(console: ConsoleView): Boolean
     fun sendResourceReload(endpoint: DefoldEngineEndpoint, payload: ByteArray)
 }

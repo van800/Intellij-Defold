@@ -8,7 +8,6 @@ import com.intellij.openapi.components.Service.Level.PROJECT
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
-import java.util.concurrent.atomic.AtomicReference
 
 @Service(PROJECT)
 class DefoldEngineDiscoveryService {
@@ -24,83 +23,97 @@ class DefoldEngineDiscoveryService {
     }
 
     private val lock = Any()
-    private val activeHandler = AtomicReference<OSProcessHandler?>()
+    private val runningEngines = mutableListOf<RunningEngine>()
+    private val engineInfoByHandler = mutableMapOf<OSProcessHandler, EngineTargetInfo>()
 
-    @Volatile
-    private var engineTargetInfo = EngineTargetInfo()
-
-    fun attachToProcess(handler: OSProcessHandler) {
+    fun attachToProcess(handler: OSProcessHandler, debugPort: Int?) {
         synchronized(lock) {
-            activeHandler.set(handler)
-            engineTargetInfo = EngineTargetInfo()
+            runningEngines.removeAll { it.handler == handler }
+            runningEngines.add(RunningEngine(handler, debugPort))
+            engineInfoByHandler[handler] = EngineTargetInfo()
         }
 
         handler.addProcessListener(object : ProcessListener {
             override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                recordLogLine(event.text)
+                recordLogLine(handler, event.text)
             }
 
             override fun processTerminated(event: ProcessEvent) {
-                clearIfOwned(handler)
+                clear(handler)
             }
         })
     }
 
-    fun stopActiveEngine() {
-        val handler = synchronized(lock) {
-            val current = activeHandler.getAndSet(null)
-            if (current != null) {
-                engineTargetInfo = EngineTargetInfo()
+    fun stopEnginesForPort(debugPort: Int?) {
+        val handlers = synchronized(lock) {
+            val (matching, remaining) = runningEngines.partition { entry ->
+                debugPort == null || entry.debugPort == debugPort
             }
-            current
-        } ?: return
+            runningEngines.clear()
+            runningEngines.addAll(remaining)
+            matching.forEach { engineInfoByHandler.remove(it.handler) }
+            matching.map(RunningEngine::handler)
+        }
 
-        if (!handler.isProcessTerminating && !handler.isProcessTerminated) {
-            handler.destroyProcess()
+        handlers.forEach { handler ->
+            if (!handler.isProcessTerminating && !handler.isProcessTerminated) {
+                handler.destroyProcess()
+            }
         }
     }
 
-    internal fun recordLogLine(rawLine: String) {
+    internal fun recordLogLine(handler: OSProcessHandler, rawLine: String) {
         val line = rawLine.trim().ifEmpty { return }
 
+        fun update(modifier: (EngineTargetInfo) -> EngineTargetInfo) {
+            synchronized(lock) {
+                val current = engineInfoByHandler[handler] ?: EngineTargetInfo()
+                engineInfoByHandler[handler] = modifier(current)
+            }
+        }
+
         LOG_PORT_REGEX.find(line)?.groupValues?.getOrNull(1)?.toIntOrNull()?.let { port ->
-            updateInfo { it.copy(logPort = port, lastUpdatedMillis = System.currentTimeMillis()) }
+            update { it.copy(logPort = port, lastUpdatedMillis = System.currentTimeMillis()) }
         }
 
         SERVICE_PORT_REGEX.find(line)?.groupValues?.getOrNull(1)?.toIntOrNull()?.let { port ->
-            updateInfo { it.copy(servicePort = port, lastUpdatedMillis = System.currentTimeMillis()) }
+            update { it.copy(servicePort = port, lastUpdatedMillis = System.currentTimeMillis()) }
         }
 
         TARGET_ADDRESS_REGEX.find(line)?.groupValues?.getOrNull(1)?.let { address ->
-            updateInfo { current ->
+            update { current ->
                 current.copy(address = address, lastUpdatedMillis = System.currentTimeMillis())
             }
         }
     }
 
-    fun currentEndpoint(): DefoldEngineEndpoint? {
-        return DefoldEngineEndpoint(
-            address = engineTargetInfo.address ?: DEFAULT_ADDRESS,
-            port = engineTargetInfo.servicePort ?: return null,
-            logPort = engineTargetInfo.logPort,
-            lastUpdatedMillis = engineTargetInfo.lastUpdatedMillis
-        )
-    }
+    fun currentEndpoint(): DefoldEngineEndpoint? = currentEndpoints().firstOrNull()
 
-    private fun clearIfOwned(handler: OSProcessHandler) {
-        synchronized(lock) {
-            if (activeHandler.get() == handler) {
-                engineTargetInfo = EngineTargetInfo()
-                activeHandler.set(null)
-            }
+    fun currentEndpoints(): List<DefoldEngineEndpoint> {
+        val infos = synchronized(lock) { engineInfoByHandler.values.toList() }
+
+        return infos.mapNotNull { info ->
+            val port = info.servicePort ?: return@mapNotNull null
+            DefoldEngineEndpoint(
+                address = info.address ?: DEFAULT_ADDRESS,
+                port = port,
+                logPort = info.logPort,
+                lastUpdatedMillis = info.lastUpdatedMillis
+            )
         }
     }
 
-    private fun updateInfo(modifier: (EngineTargetInfo) -> EngineTargetInfo) {
+    private fun clear(handler: OSProcessHandler) {
         synchronized(lock) {
-            engineTargetInfo = modifier(engineTargetInfo)
+            runningEngines.removeAll { it.handler == handler }
+            engineInfoByHandler.remove(handler)
         }
     }
+
+    private data class RunningEngine(
+        val handler: OSProcessHandler,
+        val debugPort: Int?
+    )
 
     private data class EngineTargetInfo(
         val address: String? = null,

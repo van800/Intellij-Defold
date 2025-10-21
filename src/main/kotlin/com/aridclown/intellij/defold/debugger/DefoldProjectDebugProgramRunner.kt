@@ -37,6 +37,7 @@ open class DefoldProjectDebugProgramRunner : BaseDefoldProgramRunner() {
                         project = project,
                         console = console,
                         enableDebugScript = enableDebugScript,
+                        serverPort = (50000..59999).random(),
                         debugPort = config.port,
                         envData = config.envData,
                         buildCommands = buildCommands,
