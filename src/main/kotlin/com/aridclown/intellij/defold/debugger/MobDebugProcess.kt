@@ -15,6 +15,7 @@ import com.intellij.execution.ui.ConsoleViewContentType.NORMAL_OUTPUT
 import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSession
@@ -27,6 +28,7 @@ import com.intellij.xdebugger.frame.XSuspendContext
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 typealias ServerFactory = (String, Int, Logger) -> MobDebugServer
 typealias DebugProtocolFactory = (MobDebugServer, Logger) -> MobDebugProtocol
@@ -59,6 +61,7 @@ class MobDebugProcess(
     // Track active remote breakpoint locations (path + line) for precise pause filtering.
     private val breakpointLocations = ConcurrentHashMap.newKeySet<BreakpointLocation>()
     private val runToCursorBreakpoints = ConcurrentHashMap.newKeySet<BreakpointLocation>()
+    private val duplicateConnectionAlertShown = AtomicBoolean(false)
 
     companion object {
         private val MULTIPLE_SLASHES = Regex("/{2,}")
@@ -84,6 +87,7 @@ class MobDebugProcess(
 
         server.addOnConnectedListener { onServerConnected() }
         server.addOnDisconnectedListener { onServerDisconnected() }
+        server.addOnDuplicateConnectionListener { onDuplicateConnectionAttempt() }
     }
 
     override fun createConsole(): ConsoleView = console
@@ -445,6 +449,21 @@ class MobDebugProcess(
                 if (!evt.details.isNullOrBlank()) append("\n").append(evt.details)
             }
             console.printError(msg)
+        }
+    }
+
+    private fun onDuplicateConnectionAttempt() {
+        if (!duplicateConnectionAlertShown.compareAndSet(false, true)) return
+
+        getApplication().invokeLater {
+            Messages.showErrorDialog(
+                project,
+                """Another MobDebug client tried to attach while the Defold IntelliJ debugger was active. 
+                    |
+                    |Remove embedded MobDebug bootstrap code (for example 'dbg = require "builtins.scripts.mobdebug"; dbg.start()') to debug from IntelliJ.""".trimMargin(),
+                "External MobDebug Connection"
+            )
+            console.printError("Ignored external MobDebug connection; remove in-game debugger bootstrap to keep this session active.")
         }
     }
 

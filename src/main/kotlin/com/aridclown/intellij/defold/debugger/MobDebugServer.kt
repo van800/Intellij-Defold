@@ -1,13 +1,10 @@
 package com.aridclown.intellij.defold.debugger
 
+import com.aridclown.intellij.defold.util.tryWithWarning
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager.getApplication
 import com.intellij.openapi.diagnostic.Logger
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.IOException
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
+import java.io.*
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -33,7 +30,9 @@ class MobDebugServer(
 
     @Volatile
     private var pendingBody: BodyRequest? = null
+
     private val pendingCommands = CopyOnWriteArrayList<String>()
+    private val duplicateConnectionListeners = CopyOnWriteArrayList<() -> Unit>()
 
     private data class BodyRequest(val len: Int, val onComplete: (String) -> Unit)
 
@@ -63,7 +62,13 @@ class MobDebugServer(
         }
     }
 
-    private fun handleClientConnection(socket: Socket) = try {
+    private fun handleClientConnection(socket: Socket) = tryWithWarning(logger, "Error setting up client connection") {
+        if (isConnected()) {
+            runCatching { socket.close() }
+            notifyDuplicateConnection()
+            return@tryWithWarning
+        }
+
         clientSocket = socket
         reader = BufferedReader(InputStreamReader(socket.getInputStream(), UTF_8))
         writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream(), UTF_8))
@@ -80,8 +85,6 @@ class MobDebugServer(
         startReading()
 
         println("MobDebug client connected from ${socket.remoteSocketAddress}")
-    } catch (e: IOException) {
-        logger.warn("Error setting up client connection", e)
     }
 
     private fun startReading() {
@@ -136,9 +139,12 @@ class MobDebugServer(
         }
     }
 
-    fun isConnected(): Boolean = ::clientSocket.isInitialized && clientSocket.isConnected
+    fun isConnected(): Boolean =
+        ::clientSocket.isInitialized && clientSocket.isConnected && !clientSocket.isClosed
 
-    fun getPendingCommands(): List<String> = pendingCommands.toList()
+    fun addOnDuplicateConnectionListener(listener: () -> Unit) {
+        duplicateConnectionListeners.add(listener)
+    }
 
     override fun dispose() {
         fun AutoCloseable.closeQuietly(): Result<Unit> = runCatching(AutoCloseable::close)
@@ -156,5 +162,13 @@ class MobDebugServer(
     private fun handleStreamClosedException(e: IOException, warningMessage: String) = when {
         e.message?.contains("Stream closed") == true -> println("Defold game disconnected. ${e.message}")
         else -> logger.warn(warningMessage, e)
+    }
+
+    private fun notifyDuplicateConnection() {
+        duplicateConnectionListeners.forEach { listener ->
+            runCatching { listener() }.onFailure { throwable ->
+                logger.warn("duplicate connection listener error", throwable)
+            }
+        }
     }
 }
