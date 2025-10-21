@@ -46,7 +46,8 @@ class MobDebugStackFrame(
             project,
             evaluator,
             frameIdx,
-            framePosition = sourcePosition
+            framePosition = sourcePosition,
+            locals = variables
         )
     }
 

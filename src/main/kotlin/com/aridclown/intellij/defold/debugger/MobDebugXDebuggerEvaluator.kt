@@ -8,6 +8,8 @@ import com.aridclown.intellij.defold.debugger.value.MobDebugVarargValue
 import com.aridclown.intellij.defold.debugger.value.MobRValue
 import com.aridclown.intellij.defold.debugger.value.MobRValue.Companion.createVarargs
 import com.aridclown.intellij.defold.debugger.value.MobVariable
+import com.aridclown.intellij.defold.debugger.value.MobVariable.Kind.LOCAL
+import com.aridclown.intellij.defold.debugger.value.MobVariable.Kind.PARAMETER
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
@@ -29,8 +31,15 @@ class MobDebugXDebuggerEvaluator(
     private val project: Project,
     private val evaluator: MobDebugEvaluator,
     private val frameIndex: Int,
-    private val framePosition: XSourcePosition?
+    private val framePosition: XSourcePosition?,
+    locals: List<MobVariable> = emptyList()
 ) : XDebuggerEvaluator() {
+
+    private val localKinds: Map<String, MobVariable.Kind> = locals
+        .groupBy(MobVariable::name)
+        .mapValues { (_, vars) ->
+            vars.firstOrNull { it.kind == PARAMETER }?.kind ?: vars.first().kind
+        }
 
     override fun getExpressionRangeAtOffset(
         project: Project,
@@ -164,7 +173,8 @@ class MobDebugXDebuggerEvaluator(
 
             // Regular evaluation
             val rv = MobRValue.fromRawLuaValue(expr, value)
-            val variable = MobVariable(expr, rv)
+            val kind = localKinds[expr] ?: LOCAL
+            val variable = MobVariable(expr, rv, kind = kind)
             callback.evaluated(MobDebugValue(project, variable, evaluator, frameIndex, framePosition))
         }, onError = { err ->
             callback.errorOccurred(err)
