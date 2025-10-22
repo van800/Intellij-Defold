@@ -142,7 +142,7 @@ class DefoldProjectActivity : ProjectActivity {
     }
 }
 
-private val DEFOLD_DEFAULT_EXCLUDES = listOf(".git", ".idea", ".gradle", "build", ".internal", "out")
+private val DEFOLD_DEFAULT_EXCLUDES = listOf(".git", ".idea", "build", ".internal", "debugger")
 
 fun Project.ensureDefoldModule(): Module? {
     val basePath = this.basePath ?: return null

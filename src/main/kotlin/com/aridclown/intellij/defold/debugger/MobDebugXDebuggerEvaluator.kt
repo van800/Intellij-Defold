@@ -177,11 +177,13 @@ class MobDebugXDebuggerEvaluator(
             val variable = MobVariable(expr, rv, kind = kind)
             callback.evaluated(MobDebugValue(project, variable, evaluator, frameIndex, framePosition))
         }, onError = { err ->
-            callback.errorOccurred(err)
+            callback.errorOccurred(err.trimDebuggerPrefix() ?: "")
         })
     }
-
 }
+
+private fun String?.trimDebuggerPrefix(): String? =
+    this?.substringAfter("]:1:", this)?.trim()
 
 private fun PsiElement.isFunctionCallCallee(offset: Int): Boolean {
     val call = PsiTreeUtil.getParentOfType(this, LuaCallExpr::class.java, false) ?: return false
