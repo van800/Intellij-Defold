@@ -42,7 +42,7 @@ enum class Platform {
 
 object DefoldDefaults {
     private val defoldInstallPathSuggestion = mapOf(
-        WINDOWS to "C:\\Program Files\\Defold",
+        WINDOWS to "C:\\Defold\\Defold.exe",
         MACOS to "/Applications/Defold.app",
         LINUX to "/usr/bin/Defold"
     )
@@ -62,6 +62,11 @@ object DefoldDefaults {
 
     internal fun clearStoredInstallPath() {
         DefoldSettings.getInstance().clearInstallPath()
+    }
+
+    fun getDefoldProcess(): String {
+        val platform = Platform.current()
+        return defoldProcess[platform] ?: throw IllegalArgumentException("Unsupported platform: $platform")
     }
 }
 
