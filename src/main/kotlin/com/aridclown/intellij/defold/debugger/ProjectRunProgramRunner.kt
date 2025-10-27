@@ -1,5 +1,7 @@
 package com.aridclown.intellij.defold.debugger
 
+import com.aridclown.intellij.defold.DefoldProjectService.Companion.createConsole
+import com.aridclown.intellij.defold.ProjectRunner
 import com.aridclown.intellij.defold.RunRequest
 import com.aridclown.intellij.defold.process.DeferredProcessHandler
 import com.intellij.execution.DefaultExecutionResult
@@ -24,7 +26,7 @@ open class ProjectRunProgramRunner : BaseDefoldProgramRunner() {
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? =
         with(environment) {
             val config = runProfile as MobDebugRunConfiguration
-            val console = createConsole(project)
+            val console = project.createConsole()
             val processHandler = DeferredProcessHandler()
                 .also(console::attachToProcess)
 
@@ -32,18 +34,16 @@ open class ProjectRunProgramRunner : BaseDefoldProgramRunner() {
             val enableDebugScript = config.runtimeEnableDebugScript ?: false
 
             try {
-                val result = launch(
-                    RunRequest.loadFromEnvironment(
-                        project = project,
-                        console = console,
-                        enableDebugScript = enableDebugScript,
-                        envData = config.envData,
-                        buildCommands = buildCommands,
-                        onEngineStarted = processHandler::attach
-                    )
-                )
+                val request = RunRequest.loadFromEnvironment(
+                    project = project,
+                    console = console,
+                    enableDebugScript = enableDebugScript,
+                    envData = config.envData,
+                    buildCommands = buildCommands,
+                    onEngineStarted = processHandler::attach
+                ) ?: return null
 
-                if (!result) return null
+                ProjectRunner.run(request)
             } finally {
                 config.runtimeBuildCommands = null
                 config.runtimeEnableDebugScript = null

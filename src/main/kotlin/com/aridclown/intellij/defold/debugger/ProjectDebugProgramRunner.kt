@@ -1,5 +1,7 @@
 package com.aridclown.intellij.defold.debugger
 
+import com.aridclown.intellij.defold.DefoldProjectService.Companion.createConsole
+import com.aridclown.intellij.defold.ProjectRunner
 import com.aridclown.intellij.defold.RunRequest
 import com.intellij.execution.configurations.RunProfile
 import com.intellij.execution.configurations.RunProfileState
@@ -25,27 +27,25 @@ open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
     override fun doExecute(state: RunProfileState, environment: ExecutionEnvironment): RunContentDescriptor? =
         with(environment) {
             val config = runProfile as MobDebugRunConfiguration
-            val console = createConsole(project)
+            val console = project.createConsole()
 
             var gameProcess: OSProcessHandler? = null
             val buildCommands = config.runtimeBuildCommands ?: listOf("build")
             val enableDebugScript = config.runtimeEnableDebugScript ?: true
 
             try {
-                val result = launch(
-                    RunRequest.loadFromEnvironment(
-                        project = project,
-                        console = console,
-                        enableDebugScript = enableDebugScript,
-                        serverPort = (50000..59999).random(),
-                        debugPort = config.port,
-                        envData = config.envData,
-                        buildCommands = buildCommands,
-                        onEngineStarted = { handler -> gameProcess = handler }
-                    )
-                )
+                val request = RunRequest.loadFromEnvironment(
+                    project = project,
+                    console = console,
+                    enableDebugScript = enableDebugScript,
+                    serverPort = (50000..59999).random(),
+                    debugPort = config.port,
+                    envData = config.envData,
+                    buildCommands = buildCommands,
+                    onEngineStarted = { handler -> gameProcess = handler }
+                ) ?: return null
 
-                if (!result) return null
+                ProjectRunner.run(request)
             } finally {
                 config.runtimeBuildCommands = null
                 config.runtimeEnableDebugScript = null

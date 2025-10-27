@@ -55,8 +55,6 @@ class EngineExtractorTest {
         clearAllMocks()
     }
 
-    // Helper functions
-
     private fun setupExtractedEngine() {
         val extractedPath = tempDir.resolve("build/libexec/x86_64-linux/dmengine")
         extractedPath.parent.createDirectories()

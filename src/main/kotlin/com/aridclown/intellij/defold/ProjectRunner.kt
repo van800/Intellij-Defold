@@ -18,6 +18,7 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import kotlinx.coroutines.Job
 import org.ini4j.Ini
 import org.ini4j.Profile.Section
 import java.nio.file.Files
@@ -34,9 +35,7 @@ import kotlin.io.path.notExists
  */
 object ProjectRunner {
 
-    fun run(request: RunRequest) {
-        request.project.launch { execute(request) }
-    }
+    fun run(request: RunRequest): Job = request.project.launch { execute(request) }
 
     /**
      * Copy debugger resources into the project workspace when missing.

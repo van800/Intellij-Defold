@@ -18,12 +18,14 @@ import com.intellij.testFramework.junit5.fixture.TestFixtures
 import com.intellij.testFramework.junit5.fixture.moduleFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
+import com.intellij.testFramework.replaceService
 import io.mockk.coJustRun
 import io.mockk.coVerify
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Path
@@ -36,6 +38,27 @@ class DefoldProjectActivityIntegrationTest {
     private val projectFixture = projectFixture(projectPathFixture, openAfterCreation = true)
     private val moduleFixture = projectFixture.moduleFixture(projectPathFixture)
 
+    private lateinit var project: Project
+    private lateinit var module: Module
+    private lateinit var contentRoot: VirtualFile
+    private lateinit var gameProjectFile: VirtualFile
+
+    @BeforeEach
+    fun setUp() {
+        val rootDir = projectPathFixture.get().also(::createGameProjectFile)
+
+        project = projectFixture.get()
+        module = moduleFixture.get()
+
+        contentRoot = refreshVirtualFile(rootDir)
+        gameProjectFile = refreshVirtualFile(rootDir.resolve(GAME_PROJECT_FILE))
+
+        replaceDefoldService(project)
+
+        mockkObject(DefoldAnnotationsManager)
+        coJustRun { DefoldAnnotationsManager.ensureAnnotationsAttached(any(), any()) }
+    }
+
     @AfterEach
     fun tearDown() {
         unmockkObject(DefoldAnnotationsManager)
@@ -43,74 +66,34 @@ class DefoldProjectActivityIntegrationTest {
 
     @Test
     fun `should activate Defold tooling when game project present`(): Unit = timeoutRunBlocking {
-        val rootDir = projectPathFixture.get()
-            .also(::createGameProjectFile)
-
-        val project = projectFixture.get()
-        val module = moduleFixture.get()
-
-        val contentRoot = refreshVirtualFile(rootDir)
-        val gameProjectFile = refreshVirtualFile(rootDir.resolve(GAME_PROJECT_FILE))
-
         initContentEntries(module, contentRoot)
-
-        replaceDefoldService(project)
-
-        mockkObject(DefoldAnnotationsManager)
-        coJustRun { DefoldAnnotationsManager.ensureAnnotationsAttached(any(), any()) }
 
         DefoldProjectActivity().execute(project)
 
         val service = project.defoldProjectService()
-        assertThat(project.isDefoldProject)
-            .describedAs("Defold project file should be detected")
-            .isTrue()
-        assertThat(project.rootProjectFolder)
-            .describedAs("Defold project folder should match content root")
-            .isEqualTo(contentRoot)
-        assertThat(service.gameProjectFile)
-            .describedAs("Game project file should be registered")
-            .isEqualTo(gameProjectFile)
+        assertThat(project.isDefoldProject).isTrue()
+        assertThat(project.rootProjectFolder).isEqualTo(contentRoot)
+        assertThat(service.gameProjectFile).isEqualTo(gameProjectFile)
 
         coVerify(exactly = 1) { DefoldAnnotationsManager.ensureAnnotationsAttached(project, any()) }
 
-        val notifications = NotificationsManager.getNotificationsManager()
+        NotificationsManager.getNotificationsManager()
             .getNotificationsOfType(Notification::class.java, project)
 
-        assertThat(contentRootIsSourcesRoot(module, contentRoot))
-            .describedAs("ensureRootIsSourcesRoot should add the project root as a sources root")
-            .isTrue()
+        assertThat(contentRootIsSourcesRoot(module, contentRoot)).isTrue()
     }
 
     @Test
     fun `should detect Defold project with no content roots yet`(): Unit = timeoutRunBlocking {
-        val rootDir = projectPathFixture.get()
-            .also(::createGameProjectFile)
-
-        val project = projectFixture.get()
-        val module = moduleFixture.get()
-
         ModuleRootModificationUtil.updateModel(module) { model ->
             model.contentEntries.toList().forEach(model::removeContentEntry)
         }
 
-        refreshVirtualFile(rootDir)
-        val gameProjectFile = refreshVirtualFile(rootDir.resolve(GAME_PROJECT_FILE))
-
-        replaceDefoldService(project)
-
-        mockkObject(DefoldAnnotationsManager)
-        coJustRun { DefoldAnnotationsManager.ensureAnnotationsAttached(any(), any()) }
-
         DefoldProjectActivity().execute(project)
 
         val service = project.defoldProjectService()
-        assertThat(service.gameProjectFile)
-            .describedAs("Game project file should be detected from the project base directory")
-            .isEqualTo(gameProjectFile)
-        assertThat(project.isDefoldProject)
-            .describedAs("Project should be treated as Defold even before content roots are configured")
-            .isTrue()
+        assertThat(service.gameProjectFile).isEqualTo(gameProjectFile)
+        assertThat(project.isDefoldProject).isTrue()
     }
 
     private fun createGameProjectFile(projectDir: Path) {
@@ -140,17 +123,10 @@ class DefoldProjectActivityIntegrationTest {
             ?: error("Virtual file not found for path: $path")
 
     private fun replaceDefoldService(project: Project) {
-        val utilClass = Class.forName("com.intellij.testFramework.ServiceContainerUtil")
-        val componentManagerClass = Class.forName("com.intellij.openapi.components.ComponentManager")
-        val disposableClass = Class.forName("com.intellij.openapi.Disposable")
-        val method = utilClass.getMethod(
-            "replaceService",
-            componentManagerClass,
-            Class::class.java,
-            Any::class.java,
-            disposableClass
+        project.replaceService(
+            DefoldProjectService::class.java,
+            DefoldProjectService(project),
+            project
         )
-
-        method.invoke(null, project, DefoldProjectService::class.java, DefoldProjectService(project), project)
     }
 }

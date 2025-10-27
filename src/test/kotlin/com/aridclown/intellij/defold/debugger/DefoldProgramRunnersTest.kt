@@ -17,7 +17,6 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.execution.runners.RunContentBuilder
 import com.intellij.execution.ui.ConsoleView
-import com.intellij.execution.ui.ConsoleViewContentType.ERROR_OUTPUT
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.execution.ui.RunnerLayoutUi
 import com.intellij.openapi.application.Application
@@ -39,54 +38,6 @@ class DefoldProgramRunnersTest {
     fun tearDown() {
         clearAllMocks()
         unmockkAll()
-    }
-
-    @Nested
-    inner class BaseRunner {
-
-        private val project = mockk<Project>(relaxed = true)
-        private val console = mockConsole()
-
-        private val stubbedRunner = object : BaseDefoldProgramRunner() {
-            override fun getRunnerId(): String = "test"
-            override fun canRun(executorId: String, profile: RunProfile): Boolean = false
-
-            fun launchRequest(request: RunRequest?): Boolean = super.launch(request)
-        }
-
-        @Test
-        fun `launch returns false when request is missing`() {
-            mockkObject(ProjectRunner)
-            every { ProjectRunner.run(any()) } just Runs
-
-            val result = stubbedRunner.launchRequest(null)
-
-            assertThat(result).isFalse()
-            verify(exactly = 0) { ProjectRunner.run(any()) }
-        }
-
-        @Test
-        fun `launch delegates to project runner`() {
-            mockkObject(ProjectRunner)
-            val config = mockk<DefoldEditorConfig>()
-            val request = RunRequest(
-                project = project,
-                config = config,
-                console = console,
-                enableDebugScript = false,
-                onEngineStarted = { it.addProcessListener(mockk(relaxed = true)) }
-            )
-
-            every { ProjectRunner.run(any()) } answers {
-                val captured = firstArg<RunRequest>()
-                assertThat(captured).isEqualTo(request)
-            }
-
-            val result = stubbedRunner.launchRequest(request)
-
-            assertThat(result).isTrue()
-            verify(exactly = 1) { ProjectRunner.run(request) }
-        }
     }
 
     @Nested
@@ -156,6 +107,7 @@ class DefoldProgramRunnersTest {
             val requestSlot = slot<RunRequest>()
             every { ProjectRunner.run(capture(requestSlot)) } answers {
                 requestSlot.captured.onEngineStarted(handler)
+                mockk()
             }
 
             val runner = TestProjectRunProgramRunner()
@@ -172,6 +124,7 @@ class DefoldProgramRunnersTest {
             assertThat(request.console).isEqualTo(console)
             assertThat(request.config).isEqualTo(editorConfig)
             assertThat(request.enableDebugScript).isTrue()
+            assertThat(request.serverPort).isNull()
             assertThat(request.debugPort).isNull()
             assertThat(request.envData).isEqualTo(envData)
             assertThat(request.buildCommands).containsExactly("bundle")
@@ -180,7 +133,7 @@ class DefoldProgramRunnersTest {
         @Test
         fun `doExecute reports invalid config`() {
             every { DefoldPathResolver.ensureEditorConfig(any()) } returns null
-            every { ProjectRunner.run(any()) } just Runs
+            every { ProjectRunner.run(any()) } returns mockk()
 
             val runtimeCommands = listOf("bundle")
             val runtimeDebugFlag = false
@@ -270,6 +223,7 @@ class DefoldProgramRunnersTest {
             val requestSlot = slot<RunRequest>()
             every { ProjectRunner.run(capture(requestSlot)) } answers {
                 requestSlot.captured.onEngineStarted(handler)
+                mockk()
             }
 
             val environment = executionEnvironment(project, DefaultDebugExecutor.EXECUTOR_ID, runConfig)
@@ -286,6 +240,7 @@ class DefoldProgramRunnersTest {
             assertThat(request.console).isEqualTo(console)
             assertThat(request.config).isEqualTo(editorConfig)
             assertThat(request.enableDebugScript).isFalse()
+            assertThat(request.serverPort).isNotNull
             assertThat(request.debugPort).isEqualTo(debugPort)
             assertThat(request.envData).isEqualTo(envData)
             assertThat(request.buildCommands).containsExactly("bundle", "hotreload")
@@ -307,7 +262,7 @@ class DefoldProgramRunnersTest {
             every { XDebuggerManager.getInstance(project) } returns manager
 
             every { DefoldPathResolver.ensureEditorConfig(any()) } returns null
-            every { ProjectRunner.run(any()) } just Runs
+            every { ProjectRunner.run(any()) } returns mockk()
 
             val runtimeCommands = listOf("build")
             val runtimeDebugFlag: Boolean? = null
