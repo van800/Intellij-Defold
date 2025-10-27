@@ -40,7 +40,7 @@ class DefoldPathResolverTest {
         mockkObject(DefoldSettings.Companion)
         every { DefoldSettings.getInstance() } returns settings
 
-        // Mock Notification manager
+        // Mock Notifications
         mockkStatic(NotificationGroupManager::class)
         every { NotificationGroupManager.getInstance() } returns notificationGroupManager
         every { notificationGroupManager.getNotificationGroup("Defold") } returns notificationGroup
@@ -69,9 +69,6 @@ class DefoldPathResolverTest {
         every { application.invokeAndWait(any<Runnable>()) } answers {
             firstArg<Runnable>().run()
         }
-
-        // Default mock for project.messageBus (used by notifications)
-        every { project.messageBus } returns mockk(relaxed = true)
     }
 
     @AfterEach
@@ -81,7 +78,7 @@ class DefoldPathResolverTest {
     }
 
     @Nested
-    inner class `Config Loading` {
+    inner class ConfigLoading {
 
         @Test
         fun `returns config when valid`() {
@@ -95,29 +92,12 @@ class DefoldPathResolverTest {
 
         @Test
         fun `returns null when config invalid and user cancels`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/some/path"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(userClicksOk = false)
 
             val result = DefoldPathResolver.ensureEditorConfig(project)
 
             assertThat(result).isNull()
-            verify(exactly = 0) {
-                showSettingsUtil.showSettingsDialog(
-                    any<Project>(),
-                    any<Class<DefoldSettingsConfigurable>>()
-                )
-            }
+            verifySettingsNotOpened()
         }
 
         @Test
@@ -149,29 +129,17 @@ class DefoldPathResolverTest {
             val result = DefoldPathResolver.ensureEditorConfig(project)
 
             assertThat(result).isEqualTo(expectedConfig)
-            verify(exactly = 1) { showSettingsUtil.showSettingsDialog(project, DefoldSettingsConfigurable::class.java) }
+            verifySettingsOpened()
             verify(exactly = 2) { DefoldEditorConfig.loadEditorConfig() }
         }
     }
 
     @Nested
-    inner class `Dialog Interaction` {
+    inner class DialogInteraction {
 
         @Test
         fun `shows dialog with attempted path when config missing`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/custom/path"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(installPath = "/custom/path")
 
             DefoldPathResolver.ensureEditorConfig(project)
 
@@ -194,123 +162,48 @@ class DefoldPathResolverTest {
 
         @Test
         fun `shows dialog without path when none available`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns null
-            every { Platform.current() } returns Platform.UNKNOWN
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(installPath = null, platform = Platform.UNKNOWN)
 
             DefoldPathResolver.ensureEditorConfig(project)
 
-            verify(exactly = 1) {
-                Messages.showOkCancelDialog(
-                    eq(project),
-                    match {
-                        it.contains("The Defold installation path could not be located.")
-                                && !it.contains("Current location:")
-                                && it.contains("Would you like to update the path now?")
-                    },
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
+            verifyDialogShown {
+                it.contains("The Defold installation path could not be located.")
+                        && !it.contains("Current location:")
+                        && it.contains("Would you like to update the path now?")
             }
         }
 
         @Test
         fun `opens settings when user clicks OK`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/some/path"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.YES
-            every {
-                showSettingsUtil.showSettingsDialog(
-                    any<Project>(),
-                    eq(DefoldSettingsConfigurable::class.java)
-                )
-            } just Runs
+            mockInvalidConfig(userClicksOk = true)
 
             DefoldPathResolver.ensureEditorConfig(project)
 
             verify(exactly = 1) { application.invokeAndWait(any<Runnable>()) }
-            verify(exactly = 1) { showSettingsUtil.showSettingsDialog(project, DefoldSettingsConfigurable::class.java) }
+            verifySettingsOpened()
             verify(exactly = 1) { notification.notify(any()) }
         }
 
         @Test
         fun `skips settings when user clicks Cancel`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/some/path"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(userClicksOk = false)
 
             DefoldPathResolver.ensureEditorConfig(project)
 
-            verify(exactly = 0) {
-                showSettingsUtil.showSettingsDialog(
-                    any<Project>(),
-                    any<Class<DefoldSettingsConfigurable>>()
-                )
-            }
+            verifySettingsNotOpened()
         }
     }
 
     @Nested
-    inner class `Notification Handling` {
+    inner class NotificationHandling {
 
         @Test
         fun `shows notification when config still invalid after settings`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/some/path"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.YES
-            every {
-                showSettingsUtil.showSettingsDialog(
-                    any<Project>(),
-                    eq(DefoldSettingsConfigurable::class.java)
-                )
-            } just Runs
+            mockInvalidConfig(userClicksOk = true)
 
             val result = DefoldPathResolver.ensureEditorConfig(project)
 
             assertThat(result).isNull()
-            // Notification should be triggered - config is checked twice (before and after settings)
             verify(exactly = 2) { DefoldEditorConfig.loadEditorConfig() }
             verify(exactly = 1) { application.invokeAndWait(any<Runnable>()) }
             verify(exactly = 1) { notification.addAction(any()) }
@@ -319,25 +212,7 @@ class DefoldPathResolverTest {
 
         @Test
         fun `notification has Configure action that reopens settings`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/some/path"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.YES
-            every {
-                showSettingsUtil.showSettingsDialog(
-                    any<Project>(),
-                    eq(DefoldSettingsConfigurable::class.java)
-                )
-            } just Runs
+            mockInvalidConfig(userClicksOk = true)
 
             val result = DefoldPathResolver.ensureEditorConfig(project)
 
@@ -351,36 +226,15 @@ class DefoldPathResolverTest {
     }
 
     @Nested
-    inner class `Platform Detection` {
+    inner class PlatformDetection {
 
         @Test
         fun `uses configured path when set`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns "/custom/defold"
-            every { Platform.current() } returns Platform.MACOS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(installPath = "/custom/defold")
 
             DefoldPathResolver.ensureEditorConfig(project)
 
-            verify(exactly = 1) {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    match { it.contains("/custom/defold") },
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            }
+            verifyDialogShown { it.contains("/custom/defold") }
         }
 
         @ParameterizedTest(name = "falls back to platform default for {0}")
@@ -390,54 +244,74 @@ class DefoldPathResolverTest {
             "LINUX, /usr/bin/Defold"
         )
         fun `falls back to platform default when path not configured`(platform: Platform, expectedPath: String) {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns null
-            every { Platform.current() } returns platform
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(installPath = null, platform = platform)
 
             DefoldPathResolver.ensureEditorConfig(project)
 
-            verify(exactly = 1) {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    match { it.contains(expectedPath) },
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            }
+            verifyDialogShown { it.contains(expectedPath) }
         }
 
         @Test
         fun `handles unknown platform gracefully`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns null
-            every { Platform.current() } returns Platform.UNKNOWN
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
+            mockInvalidConfig(installPath = null, platform = Platform.UNKNOWN)
 
             val result = DefoldPathResolver.ensureEditorConfig(project)
 
             assertThat(result).isNull()
-            // Should not crash, just shows dialog without suggested path
+        }
+    }
+
+    private fun mockInvalidConfig(
+        installPath: String? = "/some/path",
+        platform: Platform = Platform.MACOS,
+        userClicksOk: Boolean = false
+    ) {
+        every { DefoldEditorConfig.loadEditorConfig() } returns null
+        every { settings.installPath() } returns installPath
+        every { Platform.current() } returns platform
+        every {
+            Messages.showOkCancelDialog(
+                any<Project>(),
+                any<String>(),
+                any<String>(),
+                any<String>(),
+                any<String>(),
+                any()
+            )
+        } returns if (userClicksOk) Messages.YES else Messages.CANCEL
+        every {
+            showSettingsUtil.showSettingsDialog(
+                any<Project>(),
+                eq(DefoldSettingsConfigurable::class.java)
+            )
+        } just Runs
+    }
+
+    private fun verifyDialogShown(messageMatcher: (String) -> Boolean) {
+        verify(exactly = 1) {
+            Messages.showOkCancelDialog(
+                any<Project>(),
+                match(messageMatcher),
+                any<String>(),
+                any<String>(),
+                any<String>(),
+                any()
+            )
+        }
+    }
+
+    private fun verifySettingsNotOpened() {
+        verify(exactly = 0) {
+            showSettingsUtil.showSettingsDialog(
+                any<Project>(),
+                any<Class<DefoldSettingsConfigurable>>()
+            )
+        }
+    }
+
+    private fun verifySettingsOpened() {
+        verify(exactly = 1) {
+            showSettingsUtil.showSettingsDialog(project, DefoldSettingsConfigurable::class.java)
         }
     }
 }
