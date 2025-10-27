@@ -17,6 +17,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 
 class DefoldPathResolverTest {
 
@@ -381,11 +383,16 @@ class DefoldPathResolverTest {
             }
         }
 
-        @Test
-        fun `falls back to platform default when path not configured`() {
+        @ParameterizedTest(name = "falls back to platform default for {0}")
+        @CsvSource(
+            "MACOS, /Applications/Defold.app",
+            "WINDOWS, C:\\Program Files\\Defold",
+            "LINUX, /usr/bin/Defold"
+        )
+        fun `falls back to platform default when path not configured`(platform: Platform, expectedPath: String) {
             every { DefoldEditorConfig.loadEditorConfig() } returns null
             every { settings.installPath() } returns null
-            every { Platform.current() } returns Platform.MACOS
+            every { Platform.current() } returns platform
             every {
                 Messages.showOkCancelDialog(
                     any<Project>(),
@@ -402,67 +409,7 @@ class DefoldPathResolverTest {
             verify(exactly = 1) {
                 Messages.showOkCancelDialog(
                     any<Project>(),
-                    match { it.contains("/Applications/Defold.app") },
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            }
-        }
-
-        @Test
-        fun `returns correct path for Windows`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns null
-            every { Platform.current() } returns Platform.WINDOWS
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
-
-            DefoldPathResolver.ensureEditorConfig(project)
-
-            verify(exactly = 1) {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    match { it.contains("C:\\Program Files\\Defold") },
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            }
-        }
-
-        @Test
-        fun `returns correct path for Linux`() {
-            every { DefoldEditorConfig.loadEditorConfig() } returns null
-            every { settings.installPath() } returns null
-            every { Platform.current() } returns Platform.LINUX
-            every {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any<String>(),
-                    any()
-                )
-            } returns Messages.CANCEL
-
-            DefoldPathResolver.ensureEditorConfig(project)
-
-            verify(exactly = 1) {
-                Messages.showOkCancelDialog(
-                    any<Project>(),
-                    match { it.contains("/usr/bin/Defold") },
+                    match { it.contains(expectedPath) },
                     any<String>(),
                     any<String>(),
                     any<String>(),
