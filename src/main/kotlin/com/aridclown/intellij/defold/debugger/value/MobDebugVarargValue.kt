@@ -14,7 +14,7 @@ import com.intellij.xdebugger.frame.presentation.XRegularValuePresentation
 
 class MobDebugVarargValue(
     project: Project,
-    private val varargs: List<MobVariable>,
+    val varargs: List<MobVariable>,
     evaluator: MobDebugEvaluator,
     frameIndex: Int?,
     framePosition: XSourcePosition?

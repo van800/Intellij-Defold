@@ -22,7 +22,7 @@ import org.luaj.vm2.LuaTable
  */
 class MobDebugValue(
     project: Project,
-    private val variable: MobVariable,
+    val variable: MobVariable,
     evaluator: MobDebugEvaluator,
     frameIndex: Int?,
     framePosition: XSourcePosition? = null
