@@ -83,7 +83,7 @@ class MobDebugServer(
         // Start reading from the client
         startReading()
 
-        println("MobDebug client connected from ${socket.remoteSocketAddress}")
+        logger.info("MobDebug client connected from ${socket.remoteSocketAddress}")
     }
 
     private fun startReading() {
@@ -92,7 +92,7 @@ class MobDebugServer(
             try {
                 while (true) {
                     val line = reader.readLine() ?: break
-                    println("<-- $line")
+                    logger.debug("<-- $line")
                     notifyMessageListeners(line)
                     pendingBody?.let { req ->
                         val buf = CharArray(req.len)
@@ -122,12 +122,12 @@ class MobDebugServer(
         if (!isConnected() || !::writer.isInitialized) {
             // Queue until a client connects
             pendingCommands.add(command)
-            println("(queued) --> $command")
+            logger.debug("(queued) --> $command")
             return
         }
 
         try {
-            println("--> $command")
+            logger.debug("--> $command")
             writer.apply {
                 write(command)
                 write("\n")
@@ -159,7 +159,7 @@ class MobDebugServer(
     }
 
     private fun handleStreamClosedException(e: IOException, warningMessage: String) = when {
-        e.message?.contains("Stream closed") == true -> println("Defold game disconnected. ${e.message}")
+        e.message?.contains("Stream closed") == true -> logger.warn("Defold game disconnected. ${e.message}")
         else -> logger.warn(warningMessage, e)
     }
 

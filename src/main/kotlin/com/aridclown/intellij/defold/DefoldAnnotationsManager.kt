@@ -93,7 +93,7 @@ object DefoldAnnotationsManager {
             Files.writeString(luarcFile, luarcContent)
             LocalFileSystem.getInstance().refreshNioFiles(listOf(luarcFile))
         }.onFailure {
-            println("Failed to create .luarc.json: ${it.message}")
+            logger.warn("Failed to create .luarc.json: ${it.message}")
         }
     }
 

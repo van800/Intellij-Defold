@@ -13,6 +13,7 @@ import com.aridclown.intellij.defold.DefoldConstants.INI_VERSION_KEY
 import com.aridclown.intellij.defold.DefoldConstants.MACOS_RESOURCES_PATH
 import com.aridclown.intellij.defold.Platform.*
 import com.aridclown.intellij.defold.settings.DefoldSettings
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.text.StringUtil
 import org.ini4j.Ini
 import java.nio.file.Files
@@ -121,6 +122,7 @@ data class DefoldEditorConfig(
     val launchConfig: LaunchConfigs.Config
 ) {
     companion object {
+        private val logger = Logger.getInstance(DefoldEditorConfig::class.java)
 
         // Template variable patterns
         private const val TEMPLATE_BOOTSTRAP_RESOURCESPATH = "\${bootstrap.resourcespath}"
@@ -143,7 +145,7 @@ data class DefoldEditorConfig(
 
                 parseConfigFile(configFile)
             } catch (e: Exception) {
-                println("Failed to parse Defold config: ${e.message}")
+                logger.error("Failed to parse Defold config: ${e.message}")
                 null
             }
         }
