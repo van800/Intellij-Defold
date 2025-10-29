@@ -71,7 +71,7 @@ class DefoldProjectService(private val project: Project) {
             descriptor: RunContentDescriptor
         ) {
             val showExisting = Runnable {
-                this.showRunContent(DefaultRunExecutor.getRunExecutorInstance(), descriptor)
+                showRunContent(DefaultRunExecutor.getRunExecutorInstance(), descriptor)
             }
             if (app.isDispatchThread) showExisting.run() else app.invokeAndWait(showExisting)
         }
