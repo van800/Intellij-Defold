@@ -159,7 +159,7 @@ class MobRValueTest {
     fun `boolean entry maps to Bool`() {
         val rv = MobRValue.fromRawLuaValue("test", LuaBoolean.TRUE)
         assertThat(rv).isInstanceOfSatisfying(MobRValue.Bool::class.java) { bool ->
-            assertThat(bool.content).isTrue()
+            assertThat(bool.content).isTrue
             assertThat(bool.typeLabel).isEqualTo("boolean")
         }
     }

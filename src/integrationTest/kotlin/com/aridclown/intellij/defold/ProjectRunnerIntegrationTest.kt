@@ -77,7 +77,7 @@ class ProjectRunnerIntegrationTest {
         coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any()) }
         verify(exactly = 1) { anyConstructed<EngineRunner>().launchEngine(any(), any()) }
         verify(exactly = 1) { ResourceUtil.copyResourcesToProject(project, any(), any(), any()) }
-        assertThat(callbackInvoked).isTrue()
+        assertThat(callbackInvoked).isTrue
     }
 
     @Test

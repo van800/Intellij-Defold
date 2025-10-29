@@ -90,7 +90,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
             verify(exactly = 1) { processExecutor.executeAndWait(any()) }
         }
 
@@ -111,7 +111,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
             verify(exactly = 0) { processExecutor.executeAndWait(any()) }
         }
 
@@ -228,7 +228,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull())
                 .isInstanceOf(IllegalStateException::class.java)
                 .hasMessage("Project has no base path")
@@ -241,7 +241,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull())
                 .isInstanceOf(RuntimeException::class.java)
                 .hasMessageContaining("Failed to extract engine")
@@ -254,7 +254,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull())
                 .isInstanceOf(RuntimeException::class.java)
                 .hasMessageContaining("Extracted engine file not found")
@@ -344,7 +344,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
         }
 
         @Test
@@ -358,7 +358,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
         }
 
         @Test
@@ -372,7 +372,7 @@ class EngineExtractorTest {
 
             val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
 
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
         }
     }
 }

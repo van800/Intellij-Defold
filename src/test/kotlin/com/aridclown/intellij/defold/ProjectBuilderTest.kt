@@ -99,7 +99,7 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
         }
 
         @Test
@@ -109,7 +109,7 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull())
                 .isInstanceOf(IllegalStateException::class.java)
                 .hasMessage("This is not a valid Defold project")
@@ -209,7 +209,7 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull())
                 .isInstanceOf(BuildProcessFailedException::class.java)
                 .hasMessage("Bob build failed (exit code 1)")
@@ -227,8 +227,8 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isSuccess).isTrue()
-            assertThat(successCalled).isTrue()
+            assertThat(result.isSuccess).isTrue
+            assertThat(successCalled).isTrue
         }
 
         @Test
@@ -245,12 +245,12 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull())
                 .isNotNull
                 .isInstanceOf(BuildProcessFailedException::class.java)
                 .hasMessage("Bob build failed (exit code 42)")
-            assertThat(failureCalled).isTrue()
+            assertThat(failureCalled).isTrue
             assertThat(capturedExitCode).isEqualTo(42)
         }
     }
@@ -336,7 +336,7 @@ class ProjectBuilderTest {
             val result = builder.buildProject(request)
 
             // Should still attempt to build, command construction doesn't validate paths
-            assertThat(result.isSuccess).isTrue()
+            assertThat(result.isSuccess).isTrue
         }
 
         @Test
@@ -347,7 +347,7 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull()).isEqualTo(expectedException)
         }
 
@@ -359,7 +359,7 @@ class ProjectBuilderTest {
 
             val result = builder.buildProject(request)
 
-            assertThat(result.isFailure).isTrue()
+            assertThat(result.isFailure).isTrue
             assertThat(result.exceptionOrNull()).isEqualTo(expectedException)
         }
     }

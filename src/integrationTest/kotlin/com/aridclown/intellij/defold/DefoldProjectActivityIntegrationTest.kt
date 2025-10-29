@@ -71,7 +71,7 @@ class DefoldProjectActivityIntegrationTest {
         DefoldProjectActivity().execute(project)
 
         val service = project.defoldProjectService()
-        assertThat(project.isDefoldProject).isTrue()
+        assertThat(project.isDefoldProject).isTrue
         assertThat(project.rootProjectFolder).isEqualTo(contentRoot)
         assertThat(service.gameProjectFile).isEqualTo(gameProjectFile)
 
@@ -80,7 +80,7 @@ class DefoldProjectActivityIntegrationTest {
         NotificationsManager.getNotificationsManager()
             .getNotificationsOfType(Notification::class.java, project)
 
-        assertThat(contentRootIsSourcesRoot(module, contentRoot)).isTrue()
+        assertThat(contentRootIsSourcesRoot(module, contentRoot)).isTrue
     }
 
     @Test
@@ -93,7 +93,7 @@ class DefoldProjectActivityIntegrationTest {
 
         val service = project.defoldProjectService()
         assertThat(service.gameProjectFile).isEqualTo(gameProjectFile)
-        assertThat(project.isDefoldProject).isTrue()
+        assertThat(project.isDefoldProject).isTrue
     }
 
     @Test
@@ -114,7 +114,7 @@ class DefoldProjectActivityIntegrationTest {
 
         DefoldProjectActivity().execute(project)
 
-        assertThat(contentRootIsSourcesRoot(module, contentRoot)).isTrue()
+        assertThat(contentRootIsSourcesRoot(module, contentRoot)).isTrue
     }
 
     private fun createGameProjectFile(projectDir: Path) {

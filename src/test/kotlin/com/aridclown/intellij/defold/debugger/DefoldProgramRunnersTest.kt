@@ -72,9 +72,9 @@ class DefoldProgramRunnersTest {
             val runner = ProjectRunProgramRunner()
             val profile = mockk<MobDebugRunConfiguration>()
 
-            assertThat(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, profile)).isTrue()
-            assertThat(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, profile)).isFalse()
-            assertThat(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, mockk())).isFalse()
+            assertThat(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, profile)).isTrue
+            assertThat(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, profile)).isFalse
+            assertThat(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, mockk())).isFalse
         }
 
         @Test
@@ -123,7 +123,7 @@ class DefoldProgramRunnersTest {
             assertThat(request.project).isEqualTo(project)
             assertThat(request.console).isEqualTo(console)
             assertThat(request.config).isEqualTo(editorConfig)
-            assertThat(request.enableDebugScript).isTrue()
+            assertThat(request.enableDebugScript).isTrue
             assertThat(request.serverPort).isNull()
             assertThat(request.debugPort).isNull()
             assertThat(request.envData).isEqualTo(envData)
@@ -177,9 +177,9 @@ class DefoldProgramRunnersTest {
             val runner = ProjectDebugProgramRunner()
             val profile = mockk<MobDebugRunConfiguration>()
 
-            assertThat(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, profile)).isTrue()
-            assertThat(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, profile)).isFalse()
-            assertThat(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, mockk())).isFalse()
+            assertThat(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, profile)).isTrue
+            assertThat(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, profile)).isFalse
+            assertThat(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, mockk())).isFalse
         }
 
         @Test
@@ -239,7 +239,7 @@ class DefoldProgramRunnersTest {
             assertThat(request.project).isEqualTo(project)
             assertThat(request.console).isEqualTo(console)
             assertThat(request.config).isEqualTo(editorConfig)
-            assertThat(request.enableDebugScript).isFalse()
+            assertThat(request.enableDebugScript).isFalse
             assertThat(request.serverPort).isNotNull
             assertThat(request.debugPort).isEqualTo(debugPort)
             assertThat(request.envData).isEqualTo(envData)

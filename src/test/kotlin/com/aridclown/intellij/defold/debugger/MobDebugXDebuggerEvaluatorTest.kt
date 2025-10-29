@@ -29,8 +29,6 @@ import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.LuaValue.NIL
 import org.luaj.vm2.LuaValue.valueOf
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit.SECONDS
 
 class MobDebugXDebuggerEvaluatorTest {
 
@@ -69,15 +67,12 @@ class MobDebugXDebuggerEvaluatorTest {
             val evaluatorWithFrame = MobDebugXDebuggerEvaluator(
                 project, mobEvaluator, frameIndex = 5, framePosition = sourcePosition
             )
-            val latch = CountDownLatch(1)
 
             every { mobEvaluator.evaluateExpr(any(), any(), any(), any()) } answers {
                 assertThat(arg<Int>(0)).isEqualTo(5)
-                latch.countDown()
             }
 
             evaluatorWithFrame.evaluate("x", mockCallback(), null)
-            latch.await(1, SECONDS)
         }
     }
 

@@ -80,7 +80,7 @@ class MobDebugProcessTest {
     fun `does not send BASEDIR when no directories are available`() {
         val result = runHandshake(localBaseDir = null, remoteBaseDir = null, projectBase = null)
 
-        assertThat(result.commands.none { it.startsWith("BASEDIR") }).isTrue()
+        assertThat(result.commands.none { it.startsWith("BASEDIR") }).isTrue
     }
 
     @Test
@@ -98,7 +98,7 @@ class MobDebugProcessTest {
             breakpoints = listOf(disabled)
         )
 
-        assertThat(result.commands.none { it.startsWith("SETB") }).isTrue()
+        assertThat(result.commands.none { it.startsWith("SETB") }).isTrue
     }
 
     @Test
@@ -144,7 +144,7 @@ class MobDebugProcessTest {
             mutedInitially = true
         )
 
-        assertThat(result.commands.none { it.startsWith("SETB") }).isTrue()
+        assertThat(result.commands.none { it.startsWith("SETB") }).isTrue
     }
 
     @Test
@@ -163,7 +163,7 @@ class MobDebugProcessTest {
             mutedInitially = true
         )
 
-        assertThat(result.commands.none { it.startsWith("SETB") }).isTrue()
+        assertThat(result.commands.none { it.startsWith("SETB") }).isTrue
 
         val handler = result.process.getBreakpointHandlers().single() as MobDebugBreakpointHandler
         handler.registerBreakpoint(enabled)

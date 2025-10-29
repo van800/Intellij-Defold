@@ -64,12 +64,12 @@ class DefoldProjectServiceIntegrationTest {
         createGameProjectFile(rootDir)
         refreshVirtualFile(rootDir.resolve(GAME_PROJECT_FILE))
 
-        assertThat(project.isDefoldProject).isTrue()
+        assertThat(project.isDefoldProject).isTrue
     }
 
     @Test
     fun `identifies project as non-Defold when game project missing`() {
-        assertThat(project.isDefoldProject).isFalse()
+        assertThat(project.isDefoldProject).isFalse
     }
 
     @Test
