@@ -61,9 +61,7 @@ class CleanBuildProjectAction : AbstractBuildAction(
             Messages.getQuestionIcon()
         ) == Messages.OK
 
-        if (!confirmed) {
-            return
-        }
+        if (!confirmed) return
 
         super.actionPerformed(event)
     }
