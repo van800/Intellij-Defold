@@ -13,6 +13,7 @@ import com.aridclown.intellij.defold.debugger.value.MobVariable
 import com.aridclown.intellij.defold.debugger.value.MobVariable.Kind
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.evaluation.XDebuggerEvaluator
 import com.intellij.xdebugger.frame.*
@@ -32,13 +33,16 @@ class MobDebugStackFrame(
 
     override fun getSourcePosition(): XSourcePosition? {
         val path = filePath ?: return null
-        val vFile = LocalFileSystem.getInstance().findFileByPath(path) ?: return null
+        val vFile = when {
+            path.contains("://") -> VirtualFileManager.getInstance().findFileByUrl(path)
+            else -> LocalFileSystem.getInstance().findFileByPath(path)
+        } ?: return null
+
         return XSourcePositionImpl.create(vFile, line - 1)
     }
 
     override fun computeChildren(node: XCompositeNode) {
-        val childrenList = createChildrenList()
-        node.addChildren(childrenList, true)
+        node.addChildren(createChildrenList(), true)
     }
 
     override fun getEvaluator(): XDebuggerEvaluator? = evaluationFrameIndex?.let { frameIdx ->
