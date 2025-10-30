@@ -4,7 +4,6 @@ import com.aridclown.intellij.defold.DefoldAnnotationsManager.ensureAnnotationsA
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldVersion
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.isDefoldProject
 import com.aridclown.intellij.defold.actions.BuildActionManager
-import com.aridclown.intellij.defold.actions.NewGroupActionManager
 import com.aridclown.intellij.defold.util.trySilently
 import com.intellij.openapi.application.edtWriteAction
 import com.intellij.openapi.diagnostic.Logger
@@ -33,8 +32,7 @@ class DefoldProjectActivity : ProjectActivity {
 
     override suspend fun execute(project: Project) {
         if (project.isDefoldProject) {
-            // Register Defold-specific "New" actions into the "New" action group
-            NewGroupActionManager.register()
+            // Unregister build menus to avoid confusion
             BuildActionManager.unregister()
 
             // Register Defold script file patterns with Lua file types

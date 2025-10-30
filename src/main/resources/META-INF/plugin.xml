@@ -45,12 +45,16 @@
     </extensions>
 
     <actions>
-        <action id="Defold.NewScript"
-                class="com.aridclown.intellij.defold.templates.CreateDefoldScriptFileAction"
-                text="Defold Script File"
-                description="Create a new Defold script file">
-            <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFromTemplate"/>
-        </action>
+        <group id="Defold.NewScriptGroup">
+            <add-to-group group-id="NewGroup" anchor="first"/>
+
+            <action id="Defold.NewScript"
+                    class="com.aridclown.intellij.defold.templates.CreateDefoldScriptFileAction"
+                    text="Defold Script File"
+                    description="Create a new Defold script file">
+            </action>
+            <separator/>
+        </group>
 
         <group id="Defold.HotReloadGroup">
             <add-to-group group-id="FileMenu" relative-to-action="PowerSaveGroup" anchor="before"/>
