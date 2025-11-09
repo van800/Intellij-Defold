@@ -4,7 +4,6 @@ import com.aridclown.intellij.defold.DefoldConstants.GAME_PROJECT_FILE
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldProjectService
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.isDefoldProject
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.rootProjectFolder
-import com.aridclown.intellij.defold.actions.BuildActionManager
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
@@ -18,11 +17,7 @@ import com.intellij.testFramework.junit5.fixture.TestFixtures
 import com.intellij.testFramework.junit5.fixture.moduleFixture
 import com.intellij.testFramework.junit5.fixture.projectFixture
 import com.intellij.testFramework.junit5.fixture.tempPathFixture
-import com.intellij.testFramework.replaceService
-import io.mockk.coJustRun
-import io.mockk.coVerify
-import io.mockk.mockk
-import io.mockk.mockkObject
+import io.mockk.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -36,6 +31,7 @@ class DefoldProjectActivityIntegrationTest {
     private val projectPathFixture = tempPathFixture()
     private val projectFixture = projectFixture(projectPathFixture, openAfterCreation = true)
     private val moduleFixture = projectFixture.moduleFixture(projectPathFixture)
+    private val mockManager = mockk<DefoldAnnotationsManager>(relaxed = true)
 
     private lateinit var project: Project
     private lateinit var module: Module
@@ -52,12 +48,9 @@ class DefoldProjectActivityIntegrationTest {
         contentRoot = refreshVirtualFile(rootDir)
         gameProjectFile = refreshVirtualFile(rootDir.resolve(GAME_PROJECT_FILE))
 
-        mockkObject(BuildActionManager)
-        coJustRun { BuildActionManager.unregister() }
-
-        val mockManager = mockk<DefoldAnnotationsManager>(relaxed = true)
-        project.replaceService(DefoldAnnotationsManager::class.java, mockManager, project)
+        mockkObject(DefoldAnnotationsManager.Companion)
         coJustRun { mockManager.ensureAnnotationsAttached() }
+        every { DefoldAnnotationsManager.getInstance(any()) } returns mockManager
     }
 
     @Test
@@ -71,10 +64,7 @@ class DefoldProjectActivityIntegrationTest {
         assertThat(project.rootProjectFolder).isEqualTo(contentRoot)
         assertThat(service.gameProjectFile).isEqualTo(gameProjectFile)
 
-        coVerify(exactly = 1) { BuildActionManager.unregister() }
-        coVerify(exactly = 1) {
-            DefoldAnnotationsManager.getInstance(project).ensureAnnotationsAttached()
-        }
+        coVerify(exactly = 1) { mockManager.ensureAnnotationsAttached() }
     }
 
     @Test

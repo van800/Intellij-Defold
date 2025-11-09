@@ -31,7 +31,6 @@ class CreateDefoldScriptFileAction : CreateFileFromTemplateAction(
         "Defold Script File"
 
     override fun update(event: AnActionEvent) {
-        super.update(event)
         event.presentation.isEnabledAndVisible = event.project?.isDefoldProject == true
     }
 }

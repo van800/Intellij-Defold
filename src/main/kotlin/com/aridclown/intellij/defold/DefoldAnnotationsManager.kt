@@ -7,9 +7,6 @@ import com.aridclown.intellij.defold.util.NotificationService.notifyWarning
 import com.aridclown.intellij.defold.util.stdLibraryRootPath
 import com.intellij.notification.NotificationAction.createSimpleExpiring
 import com.intellij.notification.NotificationType.WARNING
-import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.Service.Level.PROJECT
-import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -25,21 +22,11 @@ import java.nio.file.Path
  * - Extracts only the `api/` directory into cache
  * - Creates `.luarc.json` file for LuaLS to automatically discover the API paths
  */
-@Service(PROJECT)
 class DefoldAnnotationsManager(
     private val project: Project,
+    private val downloader: AnnotationsDownloader = AnnotationsDownloader(),
+    private val luarcManager: LuarcConfigurationManager = LuarcConfigurationManager()
 ) {
-    private lateinit var downloader: AnnotationsDownloader
-    private lateinit var luarcManager: LuarcConfigurationManager
-
-    constructor(
-        project: Project,
-        downloader: AnnotationsDownloader = AnnotationsDownloader(),
-        luarcManager: LuarcConfigurationManager = LuarcConfigurationManager()
-    ) : this(project) {
-        this.downloader = downloader
-        this.luarcManager = luarcManager
-    }
 
     private val logger = Logger.getInstance(DefoldAnnotationsManager::class.java)
 
@@ -98,6 +85,6 @@ class DefoldAnnotationsManager(
     }
 
     companion object {
-        fun getInstance(project: Project): DefoldAnnotationsManager = project.service()
+        fun getInstance(project: Project): DefoldAnnotationsManager = DefoldAnnotationsManager(project)
     }
 }

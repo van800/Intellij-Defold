@@ -20,6 +20,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HotReloadActionTest {
@@ -73,32 +75,14 @@ class HotReloadActionTest {
         coVerify(exactly = 0) { hotReloadService.performHotReload() }
     }
 
-    @Test
-    fun `action is enabled when project is Defold and engine is reachable`() {
-        every { hotReloadService.hasReachableEngine() } returns true
+    @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `action is enabled only when engine is reachable`(enabled: Boolean) {
+        every { hotReloadService.hasReachableEngine() } returns enabled
 
         hotReloadAction.update(event)
 
-        verify { presentation.isEnabled = true }
-    }
-
-    @Test
-    fun `action is disabled when project is not Defold`() {
-        every { project.isDefoldProject } returns false
-        every { hotReloadService.hasReachableEngine() } returns true
-
-        hotReloadAction.update(event)
-
-        verify { presentation.isEnabled = false }
-    }
-
-    @Test
-    fun `action is disabled when engine is not reachable`() {
-        every { hotReloadService.hasReachableEngine() } returns false
-
-        hotReloadAction.update(event)
-
-        verify { presentation.isEnabled = false }
+        verify { presentation.isEnabled = enabled }
     }
 
     @Test

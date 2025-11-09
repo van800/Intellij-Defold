@@ -65,11 +65,15 @@
                     icon="AllIcons.Actions.Refresh"
                     text="Hot Reload"
                     description="Reload modified resources in running Defold game">
-                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt R"/>
+                <keyboard-shortcut keymap="$default" first-keystroke="alt R"/>
             </action>
         </group>
 
-        <group id="Defold.BuildMenu" popup="true" text="Project" description="Defold project actions">
+        <group id="Defold.ProjectMenu"
+               class="com.aridclown.intellij.defold.actions.DefoldProjectMenuGroup"
+               popup="true"
+               text="Project"
+               description="Defold project actions">
             <action id="BuildDefoldProject"
                     text="Build"
                     icon="AllIcons.Actions.Compile"
@@ -86,7 +90,9 @@
             <separator/>
             <action id="OpenDefoldEditor"
                     text="Open Defold Editor"
-                    class="com.aridclown.intellij.defold.actions.OpenDefoldEditorAction"/>
+                    class="com.aridclown.intellij.defold.actions.OpenDefoldEditorAction">
+                <keyboard-shortcut keymap="$default" first-keystroke="alt O" replace-all="true"/>
+            </action>
 
             <add-to-group group-id="MainMenu" anchor="after" relative-to-action="ViewMenu"/>
         </group>

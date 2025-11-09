@@ -18,9 +18,7 @@ abstract class AbstractBuildAction(
     override fun getActionUpdateThread() = BGT
 
     override fun update(event: AnActionEvent): Unit = with(event) {
-        if (project.isDefoldProject) {
-            presentation.isEnabledAndVisible = true
-        }
+        presentation.isEnabledAndVisible = project.isDefoldProject
     }
 
     override fun actionPerformed(event: AnActionEvent) {
