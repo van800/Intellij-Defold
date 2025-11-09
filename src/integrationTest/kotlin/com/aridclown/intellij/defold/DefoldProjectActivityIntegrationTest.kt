@@ -57,7 +57,7 @@ class DefoldProjectActivityIntegrationTest {
 
         val mockManager = mockk<DefoldAnnotationsManager>(relaxed = true)
         project.replaceService(DefoldAnnotationsManager::class.java, mockManager, project)
-        coJustRun { mockManager.ensureAnnotationsAttached(any(), any()) }
+        coJustRun { mockManager.ensureAnnotationsAttached() }
     }
 
     @Test
@@ -73,7 +73,7 @@ class DefoldProjectActivityIntegrationTest {
 
         coVerify(exactly = 1) { BuildActionManager.unregister() }
         coVerify(exactly = 1) {
-            DefoldAnnotationsManager.getInstance(project).ensureAnnotationsAttached(project, any())
+            DefoldAnnotationsManager.getInstance(project).ensureAnnotationsAttached()
         }
     }
 

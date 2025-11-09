@@ -2,7 +2,7 @@ package com.aridclown.intellij.defold.settings
 
 import com.aridclown.intellij.defold.DefoldDefaults
 import com.aridclown.intellij.defold.Platform
-import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory.createSingleFolderDescriptor
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory.singleDir
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
@@ -24,10 +24,8 @@ class DefoldSettingsConfigurable : SearchableConfigurable, Configurable.NoScroll
     override fun getHelpTopic(): String? = null
 
     override fun createComponent(): JComponent = panel {
-        row("Install path") {
-            textField = textFieldWithBrowseButton(
-                createSingleFolderDescriptor().withTitle("Select Defold Installation"),
-            )
+        row("Install directory:") {
+            textField = textFieldWithBrowseButton(singleDir())
                 .align(FILL)
                 .bindText(
                     { settings.installPath() ?: defaultSuggestion().orEmpty() },

@@ -1,5 +1,8 @@
 package com.aridclown.intellij.defold
 
+import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldVersion
+import com.aridclown.intellij.defold.util.NotificationService
+import com.aridclown.intellij.defold.util.NotificationService.notifyInfo
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import io.mockk.*
@@ -17,6 +20,7 @@ class LuarcConfigurationManagerTest {
 
     private val project = mockk<Project>(relaxed = true)
     private val fileSystem = mockk<LocalFileSystem>(relaxed = true)
+    private val defoldVersion = "1.6.5"
     private lateinit var manager: LuarcConfigurationManager
 
     @TempDir
@@ -25,14 +29,17 @@ class LuarcConfigurationManagerTest {
     @BeforeEach
     fun setUp() {
         mockkStatic(LocalFileSystem::getInstance)
+        mockkObject(NotificationService)
+        every { project.defoldVersion } returns defoldVersion
         every { LocalFileSystem.getInstance() } returns fileSystem
+        every { any<Project>().notifyInfo(any(), any()) } just Runs
 
         manager = LuarcConfigurationManager()
     }
 
     @AfterEach
     fun tearDown() {
-        unmockkStatic(LocalFileSystem::getInstance)
+        unmockkAll()
         clearAllMocks()
     }
 
@@ -84,6 +91,8 @@ class LuarcConfigurationManagerTest {
 
         every { project.basePath } returns projectRoot.toString()
 
+        clearMocks(NotificationService, project, answers = false)
+
         manager.ensureConfiguration(project, apiDir)
 
         val luarcFile = projectRoot.resolve(".luarc.json")
@@ -93,6 +102,34 @@ class LuarcConfigurationManagerTest {
         assertDoesNotThrow {
             val content = Files.readString(luarcFile)
             JSONObject(content)
+        }
+
+        verify {
+            project.notifyInfo(
+                "Defold annotations ready",
+                match { it.contains("Defold API $defoldVersion") }
+            )
+        }
+    }
+
+    @Test
+    fun `uses latest label when version is missing`() {
+        val projectRoot = tempDir
+        val apiDir = tempDir.resolve("defold_api")
+        Files.createDirectories(apiDir)
+
+        every { project.defoldVersion } returns "  "
+        every { project.basePath } returns projectRoot.toString()
+
+        clearMocks(NotificationService, project, answers = false)
+
+        manager.ensureConfiguration(project, apiDir)
+
+        verify {
+            project.notifyInfo(
+                "Defold annotations ready",
+                match { it.contains("Defold API latest") }
+            )
         }
     }
 
@@ -108,10 +145,14 @@ class LuarcConfigurationManagerTest {
 
         every { project.basePath } returns projectRoot.toString()
 
+        clearMocks(NotificationService, project, answers = false)
+
         manager.ensureConfiguration(project, apiDir)
 
         // File should not be modified
         assertThat(Files.readString(luarcFile)).isEqualTo(originalContent)
+
+        verify(exactly = 0) { project.notifyInfo(any(), any()) }
     }
 
     @Test
@@ -154,10 +195,14 @@ class LuarcConfigurationManagerTest {
 
         every { project.basePath } returns projectRoot.toString()
 
+        clearMocks(NotificationService, project, answers = false)
+
         // Should not throw, just log warning
         assertDoesNotThrow {
             manager.ensureConfiguration(project, apiDir)
         }
+
+        verify(exactly = 0) { project.notifyInfo(any(), any()) }
     }
 
     @Test

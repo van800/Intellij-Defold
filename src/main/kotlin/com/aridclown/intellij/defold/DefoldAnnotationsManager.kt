@@ -1,8 +1,8 @@
 package com.aridclown.intellij.defold
 
 import com.aridclown.intellij.defold.DefoldCoroutineService.Companion.launch
+import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldVersion
 import com.aridclown.intellij.defold.util.NotificationService.notify
-import com.aridclown.intellij.defold.util.NotificationService.notifyInfo
 import com.aridclown.intellij.defold.util.NotificationService.notifyWarning
 import com.aridclown.intellij.defold.util.stdLibraryRootPath
 import com.intellij.notification.NotificationAction.createSimpleExpiring
@@ -27,12 +27,24 @@ import java.nio.file.Path
  */
 @Service(PROJECT)
 class DefoldAnnotationsManager(
-    private val downloader: AnnotationsDownloader = AnnotationsDownloader(),
-    private val luarcManager: LuarcConfigurationManager = LuarcConfigurationManager()
+    private val project: Project,
 ) {
+    private lateinit var downloader: AnnotationsDownloader
+    private lateinit var luarcManager: LuarcConfigurationManager
+
+    constructor(
+        project: Project,
+        downloader: AnnotationsDownloader = AnnotationsDownloader(),
+        luarcManager: LuarcConfigurationManager = LuarcConfigurationManager()
+    ) : this(project) {
+        this.downloader = downloader
+        this.luarcManager = luarcManager
+    }
+
     private val logger = Logger.getInstance(DefoldAnnotationsManager::class.java)
 
-    suspend fun ensureAnnotationsAttached(project: Project, defoldVersion: String?) {
+    suspend fun ensureAnnotationsAttached() {
+        val defoldVersion = project.defoldVersion
         val targetDir = cacheDirForTag(defoldVersion)
         val apiDir = targetDir.resolve("defold_api")
         val needsExtraction = targetDir.needsExtraction()
@@ -43,13 +55,8 @@ class DefoldAnnotationsManager(
                     val downloadUrl = downloader.resolveDownloadUrl(defoldVersion)
                     downloader.downloadAndExtract(downloadUrl, targetDir)
                     refreshAnnotationsRoot(targetDir, apiDir)
-                }.onSuccess {
-                    project.notifyInfo(
-                        title = "Defold annotations ready",
-                        content = "Configured LuaLS for Defold API ${defoldVersion ?: "latest"} via .luarc.json"
-                    )
                 }.onFailure { error ->
-                    handleAnnotationsFailure(project, defoldVersion, error)
+                    handleAnnotationsFailure(project, error)
                 }
             }
         }
@@ -57,17 +64,14 @@ class DefoldAnnotationsManager(
         luarcManager.ensureConfiguration(project, apiDir)
     }
 
-    private fun handleAnnotationsFailure(project: Project, defoldVersion: String?, error: Throwable) {
+    private fun handleAnnotationsFailure(project: Project, error: Throwable) {
         if (error is UnknownHostException) {
             project.notify(
                 title = "Defold annotations failed",
                 content = "Failed to download Defold annotations. Verify your connection, proxy, and firewall settings before trying again.",
                 type = WARNING,
                 actions = listOf(createSimpleExpiring("Retry") {
-                    project.launch {
-                        project.service<DefoldAnnotationsManager>()
-                            .ensureAnnotationsAttached(project, defoldVersion)
-                    }
+                    project.launch(::ensureAnnotationsAttached)
                 })
             )
             return

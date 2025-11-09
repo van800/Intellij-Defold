@@ -1,7 +1,6 @@
 package com.aridclown.intellij.defold
 
 import com.aridclown.intellij.defold.DefoldAnnotationsManager.Companion.getInstance
-import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldVersion
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.isDefoldProject
 import com.aridclown.intellij.defold.actions.BuildActionManager
 import com.aridclown.intellij.defold.util.trySilently
@@ -46,7 +45,7 @@ class DefoldProjectActivity : ProjectActivity {
             configureProjectModules(project)
 
             // Ensure Defold API annotations are downloaded, cached and configured with LuaLS
-            getInstance(project).ensureAnnotationsAttached(project, project.defoldVersion)
+            getInstance(project).ensureAnnotationsAttached()
         } else {
             logger.warn("No Defold project detected.")
         }

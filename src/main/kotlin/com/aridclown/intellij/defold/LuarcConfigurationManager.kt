@@ -1,5 +1,7 @@
 package com.aridclown.intellij.defold
 
+import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldVersion
+import com.aridclown.intellij.defold.util.NotificationService.notifyInfo
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
@@ -22,8 +24,14 @@ class LuarcConfigurationManager {
             Files.createDirectories(luarcFile.parent)
             Files.writeString(luarcFile, luarcContent)
             LocalFileSystem.getInstance().refreshNioFiles(listOf(luarcFile))
+        }.onSuccess {
+            val versionLabel = project.defoldVersion?.takeUnless { version -> version.isBlank() } ?: "latest"
+            project.notifyInfo(
+                title = "Defold annotations ready",
+                content = "Configured LuaLS for Defold API $versionLabel via .luarc.json"
+            )
         }.onFailure {
-            logger.warn("Failed to create .luarc.json: ${it.message}")
+            logger.warn("Failed to create .luarc.json: ${it.message}", it)
         }
     }
 

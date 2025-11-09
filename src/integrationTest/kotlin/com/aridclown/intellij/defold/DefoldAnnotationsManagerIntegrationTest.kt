@@ -1,8 +1,10 @@
 package com.aridclown.intellij.defold
 
+import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldVersion
 import com.aridclown.intellij.defold.util.stdLibraryRootPath
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
+import com.intellij.notification.NotificationType.WARNING
 import com.intellij.notification.NotificationsManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.project.Project
@@ -47,9 +49,11 @@ class DefoldAnnotationsManagerIntegrationTest {
         luarcManager = mockk(relaxed = true)
 
         mockkStatic(PathManager::class)
+        mockkObject(DefoldProjectService.Companion)
         every { PathManager.getPluginsDir() } returns annotationsCacheDir
+        every { project.defoldVersion } returns "1.6.5"
 
-        manager = DefoldAnnotationsManager(downloader, luarcManager)
+        manager = DefoldAnnotationsManager(project, downloader, luarcManager)
     }
 
     @AfterEach
@@ -70,13 +74,6 @@ class DefoldAnnotationsManagerIntegrationTest {
         verify { downloader.resolveDownloadUrl("1.6.5") }
         verify { downloader.downloadAndExtract(downloadUrl, cacheDir) }
         verify { luarcManager.ensureConfiguration(project, cacheDir.apiDir()) }
-
-        expectNotification(
-            title = "Defold annotations ready",
-            type = NotificationType.INFORMATION
-        ) { content ->
-            assertThat(content).contains("Defold API 1.6.5")
-        }
     }
 
     @Test
@@ -128,7 +125,7 @@ class DefoldAnnotationsManagerIntegrationTest {
 
         val notification = expectNotification(
             title = "Defold annotations failed",
-            type = NotificationType.WARNING
+            type = WARNING
         ) { content ->
             assertThat(content).contains(
                 "Failed to download Defold annotations. Verify your connection, proxy, and firewall settings before trying again."
@@ -147,7 +144,7 @@ class DefoldAnnotationsManagerIntegrationTest {
 
         verify { luarcManager.ensureConfiguration(project, cacheDir.apiDir()) }
 
-        expectNotification("Defold annotations failed", NotificationType.WARNING) { content ->
+        expectNotification("Defold annotations failed", WARNING) { content ->
             assertThat(content).contains("boom")
         }
     }
@@ -183,7 +180,7 @@ class DefoldAnnotationsManagerIntegrationTest {
         Files.createFile(cachePath)
 
         assertThrows<FileAlreadyExistsException> {
-            manager.ensureAnnotationsAttached(project, "1.6.5")
+            manager.ensureAnnotationsAttached()
         }
     }
 
@@ -191,8 +188,9 @@ class DefoldAnnotationsManagerIntegrationTest {
         version: String?,
         setup: (Path) -> Unit = {}
     ): Path = cacheDirFor(version).apply {
+        every { project.defoldVersion } returns version
         setup(this)
-        manager.ensureAnnotationsAttached(project, version)
+        manager.ensureAnnotationsAttached()
     }
 
     private fun cacheDirFor(version: String?): Path = stdLibraryRootPath()
