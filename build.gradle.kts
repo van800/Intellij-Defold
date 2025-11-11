@@ -52,7 +52,7 @@ dependencies {
         }
 
         plugins(
-            "com.cppcxy.Intellij-EmmyLua:0.14.0.76-IDEA252",
+            "com.cppcxy.Intellij-EmmyLua:0.17.0.89-IDEA252",
             "com.redhat.devtools.lsp4ij:0.15.0",
             "OpenGL-Plugin:1.1.6",
             "com.jetbrains.plugins.ini4idea:252.23892.449"

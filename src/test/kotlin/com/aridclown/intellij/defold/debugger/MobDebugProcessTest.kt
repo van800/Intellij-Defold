@@ -14,6 +14,7 @@ import com.intellij.xdebugger.breakpoints.SuspendPolicy
 import com.intellij.xdebugger.breakpoints.XBreakpointManager
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
+import com.tang.intellij.lua.debugger.LuaLineBreakpointType
 import io.mockk.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -37,7 +38,7 @@ class MobDebugProcessTest {
         }
         breakpointManager = mockk(relaxed = true)
         every {
-            breakpointManager.getBreakpoints(DefoldScriptBreakpointType::class.java)
+            breakpointManager.getBreakpoints(LuaLineBreakpointType::class.java)
         } returns emptyList()
         every { breakpointManager.removeBreakpoint(any()) } just Runs
 
@@ -293,7 +294,7 @@ class MobDebugProcessTest {
         }
 
         every {
-            breakpointManager.getBreakpoints(DefoldScriptBreakpointType::class.java)
+            breakpointManager.getBreakpoints(LuaLineBreakpointType::class.java)
         } returns breakpoints
 
         val process = MobDebugProcess(
@@ -330,7 +331,7 @@ class MobDebugProcessTest {
         val console = mockk<ConsoleView>(relaxed = true)
 
         every {
-            breakpointManager.getBreakpoints(DefoldScriptBreakpointType::class.java)
+            breakpointManager.getBreakpoints(LuaLineBreakpointType::class.java)
         } returns listOf(breakpoint)
 
         val session = mockk<XDebugSession>(relaxed = true, moreInterfaces = arrayOf(Disposable::class)) {

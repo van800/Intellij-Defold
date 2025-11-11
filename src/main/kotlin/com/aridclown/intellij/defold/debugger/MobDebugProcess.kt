@@ -25,6 +25,7 @@ import com.intellij.xdebugger.breakpoints.XBreakpointHandler
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
 import com.intellij.xdebugger.frame.XSuspendContext
+import com.tang.intellij.lua.debugger.LuaLineBreakpointType
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
 import java.util.concurrent.ConcurrentHashMap
@@ -407,7 +408,7 @@ class MobDebugProcess(
     private fun getDefoldBreakpoints(): Collection<XLineBreakpoint<XBreakpointProperties<*>>> =
         XDebuggerManager.getInstance(project)
             .breakpointManager
-            .getBreakpoints(DefoldScriptBreakpointType::class.java)
+            .getBreakpoints(LuaLineBreakpointType::class.java)
 
     private fun clearRunToCursorBreakpoints() {
         if (runToCursorBreakpoints.isEmpty()) return

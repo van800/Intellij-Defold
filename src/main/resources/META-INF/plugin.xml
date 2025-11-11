@@ -37,7 +37,6 @@
         <configurationType implementation="com.aridclown.intellij.defold.debugger.DefoldMobDebugConfigurationType"/>
         <programRunner implementation="com.aridclown.intellij.defold.debugger.ProjectDebugProgramRunner"/>
         <programRunner implementation="com.aridclown.intellij.defold.debugger.ProjectRunProgramRunner"/>
-        <xdebugger.breakpointType implementation="com.aridclown.intellij.defold.debugger.DefoldScriptBreakpointType"/>
         <completion.contributor language="Lua"
                                 implementationClass="com.aridclown.intellij.defold.debugger.MobDebugCompletionContributor"/>
         <runConfigurationProducer

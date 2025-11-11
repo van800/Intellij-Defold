@@ -3,6 +3,7 @@ package com.aridclown.intellij.defold.debugger
 import com.intellij.xdebugger.breakpoints.XBreakpointHandler
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
+import com.tang.intellij.lua.debugger.LuaLineBreakpointType
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -14,7 +15,7 @@ class MobDebugBreakpointHandler(
     private val pathResolver: PathResolver,
     private val breakpointLocations: ConcurrentHashMap.KeySetView<BreakpointLocation, Boolean>
 ) : XBreakpointHandler<XLineBreakpoint<XBreakpointProperties<*>>>(
-    DefoldScriptBreakpointType::class.java
+    LuaLineBreakpointType::class.java
 ) {
 
     override fun registerBreakpoint(breakpoint: XLineBreakpoint<XBreakpointProperties<*>>) =
