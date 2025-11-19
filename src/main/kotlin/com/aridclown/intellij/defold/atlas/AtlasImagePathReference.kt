@@ -8,7 +8,6 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
-import com.intellij.util.containers.sequenceOfNotNull
 
 internal class AtlasImagePathReference(
     element: PsiPlainTextFile,
@@ -33,7 +32,7 @@ internal class AtlasImagePathReference(
         if (path.isBlank()) return null
         val psiManager = PsiManager.getInstance(element.project)
 
-        return candidateContexts(path)
+        return projectRootDirectories()
             .mapNotNull { context ->
                 val virtual = findRelative(path, context) ?: return@mapNotNull null
                 psiManager.findFile(virtual) ?: psiManager.findDirectory(virtual)
@@ -45,12 +44,7 @@ internal class AtlasImagePathReference(
         val item = element as? PsiFileSystemItem ?: return super.bindToElement(element)
         val file = item.virtualFile ?: return this.element
 
-        val preferProjectRoot = currentPath().startsWith("/")
-        val newPath = when {
-            preferProjectRoot -> pathFromProjectRoot(file) ?: pathFromAtlasDirectory(file)
-            else -> pathFromAtlasDirectory(file) ?: pathFromProjectRoot(file)
-        } ?: return this.element
-
+        val newPath = pathFromProjectRoot(file) ?: return this.element
         return rewritePath(newPath)
     }
 
@@ -80,30 +74,10 @@ internal class AtlasImagePathReference(
         return ElementManipulators.handleContentChange(element, getRangeInElement(), normalized)
     }
 
-    private fun candidateContexts(path: String): Sequence<VirtualFile> {
-        val absolute = path.startsWith("/")
-        val atlasParent = atlasParentDirectory()
-        val projectRoots = projectRootDirectories()
-        return if (absolute) {
-            if (projectRoots.isEmpty()) {
-                sequenceOfNotNull(atlasParent)
-            } else {
-                projectRoots.asSequence()
-            }
-        } else {
-            sequenceOfNotNull(atlasParent).plus(projectRoots.asSequence())
-        }
-    }
-
     private fun findRelative(path: String, context: VirtualFile): VirtualFile? {
-        val relativePath = when {
-            path.startsWith("/") -> path.removePrefix("/")
-            else -> path
-        }
+        val relativePath = path.removePrefix("/")
         return VfsUtilCore.findRelativeFile(relativePath, context)
     }
-
-    private fun atlasParentDirectory(): VirtualFile? = referencedVirtualFile()?.parent
 
     private fun referencedVirtualFile(): VirtualFile? = element.originalFile.virtualFile ?: element.virtualFile
 
@@ -123,11 +97,6 @@ internal class AtlasImagePathReference(
         }
 
         return roots.toList()
-    }
-
-    private fun pathFromAtlasDirectory(file: VirtualFile): String? {
-        val parent = atlasParentDirectory() ?: return null
-        return VfsUtilCore.getRelativePath(file, parent, '/')
     }
 
     private fun pathFromProjectRoot(file: VirtualFile): String? {
