@@ -29,8 +29,7 @@ class AnnotationsDownloader {
 
             if (assets.length() == 0) throw Exception("No assets found in release")
 
-            assets
-                .getJSONObject(0)
+            assets.getJSONObject(0)
                 .getString("browser_download_url")
         } catch (e: UnknownHostException) {
             throw e
