@@ -28,11 +28,8 @@ dependencies {
     implementation(libs.luaj)
     implementation(libs.okhttp)
 
-    testImplementation(libs.bundles)
-    testImplementation(libs.junit.jupiter.api)
-    testImplementation(libs.junit.jupiter.engine)
-    testImplementation(libs.junit.jupiter.params)
-    testImplementation(libs.junit.vintage.engine)
+    testImplementation(libs.assertj)
+    testImplementation(libs.bundles.junit)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutines.test) {
