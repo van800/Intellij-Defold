@@ -28,7 +28,7 @@ dependencies {
     implementation(libs.luaj)
     implementation(libs.okhttp)
 
-    testImplementation(libs.assertj)
+    testImplementation(libs.bundles)
     testImplementation(libs.junit.jupiter.api)
     testImplementation(libs.junit.jupiter.engine)
     testImplementation(libs.junit.jupiter.params)
