@@ -51,17 +51,15 @@ class EngineDiscoveryService {
     }
 
     fun stopEnginesForPort(debugPort: Int?) {
-        val handlers =
-            synchronized(lock) {
-                val (matching, remaining) =
-                    runningEngines.partition { entry ->
-                        debugPort == null || entry.debugPort == debugPort
-                    }
-                runningEngines.clear()
-                runningEngines.addAll(remaining)
-                matching.forEach { engineInfoByHandler.remove(it.handler) }
-                matching.map(RunningEngine::handler)
+        val handlers = synchronized(lock) {
+            val (matching, remaining) = runningEngines.partition { entry ->
+                debugPort == null || entry.debugPort == debugPort
             }
+            runningEngines.clear()
+            runningEngines.addAll(remaining)
+            matching.forEach { engineInfoByHandler.remove(it.handler) }
+            matching.map(RunningEngine::handler)
+        }
 
         handlers.forEach { handler ->
             if (!handler.isProcessTerminating && !handler.isProcessTerminated) {

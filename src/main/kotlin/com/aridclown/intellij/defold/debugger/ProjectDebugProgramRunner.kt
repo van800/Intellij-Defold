@@ -12,6 +12,7 @@ import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.xdebugger.XDebugProcessStarter
 import com.intellij.xdebugger.XDebugSession
 import com.intellij.xdebugger.XDebuggerManager
+import java.util.concurrent.atomic.AtomicBoolean
 
 open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
     companion object {
@@ -33,21 +34,22 @@ open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
         val console = project.createConsole()
 
         var gameProcess: OSProcessHandler? = null
+        val terminationController = DebugSessionTerminator()
         val buildCommands = config.runtimeBuildCommands ?: listOf("build")
         val enableDebugScript = config.runtimeEnableDebugScript ?: true
 
         try {
-            val request =
-                RunRequest.loadFromEnvironment(
-                    project = project,
-                    console = console,
-                    enableDebugScript = enableDebugScript,
-                    serverPort = (50000..59999).random(),
-                    debugPort = config.port,
-                    envData = config.envData,
-                    buildCommands = buildCommands,
-                    onEngineStarted = { handler -> gameProcess = handler }
-                ) ?: return null
+            val request = RunRequest.loadFromEnvironment(
+                project = project,
+                console = console,
+                enableDebugScript = enableDebugScript,
+                serverPort = (50000..59999).random(),
+                debugPort = config.port,
+                envData = config.envData,
+                buildCommands = buildCommands,
+                onEngineStarted = { handler -> gameProcess = handler },
+                onTermination = { terminationController.terminate() }
+            ) ?: return null
 
             ProjectRunner.run(request)
         } finally {
@@ -61,10 +63,10 @@ open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
                 environment,
                 object : XDebugProcessStarter() {
                     override fun start(session: XDebugSession): MobDebugProcess {
-                        val pathMapper = MobDebugPathMapper(config.getMappingSettings())
+                        terminationController.attach(session)
                         return MobDebugProcess(
                             session,
-                            pathMapper,
+                            MobDebugPathMapper(config.getMappingSettings()),
                             config,
                             project,
                             console,
@@ -73,5 +75,23 @@ open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
                     }
                 }
             ).runContentDescriptor
+    }
+}
+
+private class DebugSessionTerminator {
+    private val terminated = AtomicBoolean(false)
+
+    @Volatile
+    private var session: XDebugSession? = null
+
+    fun attach(session: XDebugSession) {
+        this.session = session
+        if (terminated.get()) session.stop()
+    }
+
+    fun terminate() {
+        if (terminated.compareAndSet(false, true)) {
+            session?.stop()
+        }
     }
 }

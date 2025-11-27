@@ -82,6 +82,14 @@ class DeferredProcessHandlerTest {
     }
 
     @Test
+    fun `terminates immediately when no engine is attached`() {
+        handler.terminate(77)
+
+        assertThat(handler.isProcessTerminated).isTrue
+        assertThat(handler.exitCode).isEqualTo(77)
+    }
+
+    @Test
     fun `has no input stream when not connected to engine`() {
         assertThat(handler.processInput).isNull()
     }

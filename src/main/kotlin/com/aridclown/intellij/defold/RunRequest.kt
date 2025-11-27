@@ -14,7 +14,8 @@ data class RunRequest(
     val debugPort: Int? = null,
     val envData: EnvironmentVariablesData = EnvironmentVariablesData.DEFAULT,
     val buildCommands: List<String> = listOf("build"),
-    val onEngineStarted: (OSProcessHandler) -> Unit = {}
+    val onEngineStarted: (OSProcessHandler) -> Unit = {},
+    val onTermination: (Int) -> Unit = {}
 ) {
     companion object {
         fun loadFromEnvironment(
@@ -25,7 +26,8 @@ data class RunRequest(
             debugPort: Int? = null,
             envData: EnvironmentVariablesData,
             buildCommands: List<String> = listOf("build"),
-            onEngineStarted: (OSProcessHandler) -> Unit = {}
+            onEngineStarted: (OSProcessHandler) -> Unit = {},
+            onTermination: (Int) -> Unit = {}
         ): RunRequest? {
             val config = DefoldPathResolver.ensureEditorConfig(project) ?: return null
 
@@ -38,7 +40,8 @@ data class RunRequest(
                 debugPort,
                 envData,
                 buildCommands,
-                onEngineStarted
+                onEngineStarted,
+                onTermination
             )
         }
     }

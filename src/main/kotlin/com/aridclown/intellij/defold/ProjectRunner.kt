@@ -35,7 +35,31 @@ import kotlin.io.path.notExists
  * Orchestrates the build, extraction, and launch process.
  */
 object ProjectRunner {
-    fun run(request: RunRequest): Job = request.project.launch { execute(request) }
+    fun run(request: RunRequest): Job = request.project.launch {
+        val processExecutor = ProcessExecutor(request.console)
+        val builder = ProjectBuilder(processExecutor)
+        val extractor = EngineExtractor(processExecutor)
+        val engineRunner = EngineRunner(processExecutor)
+        val discoveryService = request.project.getEngineDiscoveryService()
+
+        edtWriteAction(FileDocumentManager.getInstance()::saveAllDocuments)
+        if (request.enableDebugScript && discoveryService.hasEngineForPort(request.debugPort)) {
+            request.onTermination(0)
+            return@launch
+        }
+        discoveryService.stopEnginesForPort(request.debugPort)
+
+        extractor.extractAndPrepareEngine(
+            request.project,
+            request.config,
+            request.envData
+        ).onSuccess { enginePath ->
+            proceedWithBuild(request, builder, engineRunner, enginePath)
+        }.onFailure { throwable ->
+            request.console.printError("Build failed: ${throwable.message}")
+            request.onTermination(-1)
+        }
+    }
 
     /**
      * Copy debugger resources into the project workspace when missing.
@@ -111,7 +135,8 @@ object ProjectRunner {
         return isInitDebugValueInvalid() || isInBuild
     }
 
-    private fun readIni(gameProjectFile: VirtualFile): Ini = runReadAction { gameProjectFile.inputStream.use { Ini(it) } }
+    private fun readIni(gameProjectFile: VirtualFile): Ini =
+        runReadAction { gameProjectFile.inputStream.use { Ini(it) } }
 
     private fun Ini.ensureBootstrapSection(): Section = this[INI_BOOTSTRAP_SECTION] ?: run {
         add(INI_BOOTSTRAP_SECTION)
@@ -120,7 +145,8 @@ object ProjectRunner {
 
     private fun Section.containsInitScriptEntry(): Boolean = contains(INI_DEBUG_INIT_SCRIPT_KEY)
 
-    private fun Section.isInitDebugValueInvalid(): Boolean = this[INI_DEBUG_INIT_SCRIPT_KEY] != INI_DEBUG_INIT_SCRIPT_VALUE
+    private fun Section.isInitDebugValueInvalid(): Boolean =
+        this[INI_DEBUG_INIT_SCRIPT_KEY] != INI_DEBUG_INIT_SCRIPT_VALUE
 
     private suspend fun writeIni(
         gameProjectFile: VirtualFile,
@@ -132,31 +158,6 @@ object ProjectRunner {
         gameProjectFile.refresh(false, false)
     }
 
-    private suspend fun execute(request: RunRequest) {
-        val processExecutor = ProcessExecutor(request.console)
-        val builder = ProjectBuilder(processExecutor)
-        val extractor = EngineExtractor(processExecutor)
-        val engineRunner = EngineRunner(processExecutor)
-
-        edtWriteAction(FileDocumentManager.getInstance()::saveAllDocuments)
-        if (request.enableDebugScript &&
-            request.project.getEngineDiscoveryService().hasEngineForPort(request.debugPort)
-        ) {
-            return
-        }
-        request.project.getEngineDiscoveryService().stopEnginesForPort(request.debugPort)
-
-        extractor.extractAndPrepareEngine(
-            request.project,
-            request.config,
-            request.envData
-        ).onSuccess { enginePath ->
-            proceedWithBuild(request, builder, engineRunner, enginePath)
-        }.onFailure { throwable ->
-            request.console.printError("Build failed: ${throwable.message}")
-        }
-    }
-
     private suspend fun proceedWithBuild(
         request: RunRequest,
         builder: ProjectBuilder,
@@ -165,28 +166,38 @@ object ProjectRunner {
     ) = with(request) {
         prepareMobDebugResources(request.project)
 
-        val debugScriptGuard =
-            updateGameProjectBootstrap(
-                project,
-                console,
-                enableDebugScript
-            )
+        val debugScriptGuard = updateGameProjectBootstrap(
+            project,
+            console,
+            enableDebugScript
+        )
 
         val buildResult = builder.buildProject(
-            BuildRequest(project, config, envData, buildCommands)
+            BuildRequest(
+                project = project,
+                config = config,
+                envData = envData,
+                commands = buildCommands,
+                onFailure = onTermination
+            )
         )
 
         debugScriptGuard?.cleanup()
         if (buildResult.isSuccess) {
-            engineRunner.launchEngine(request, enginePath)
-                ?.let(onEngineStarted)
+            val handler = engineRunner.launchEngine(request, enginePath)
+            if (handler == null) {
+                onTermination(-1)
+                return@with
+            }
+
+            handler.let(onEngineStarted)
             return@with
         }
 
         buildResult.exceptionOrNull()?.let { throwable ->
             if (throwable !is BuildProcessFailedException) {
-                val message = throwable.message ?: throwable.javaClass.simpleName
-                console.printError("Build failed: $message")
+                console.printError("Build failed: ${throwable.message ?: throwable.javaClass.simpleName}")
+                onTermination(-1)
             }
         }
     }

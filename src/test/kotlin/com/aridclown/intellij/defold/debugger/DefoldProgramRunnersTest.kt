@@ -63,6 +63,7 @@ class DefoldProgramRunnersTest {
             mockkObject(DefoldPathResolver)
             mockkConstructor(RunContentBuilder::class)
             mockkConstructor(DeferredProcessHandler::class)
+            every { anyConstructed<DeferredProcessHandler>().terminate(any()) } just Runs
         }
 
         @Test
@@ -87,14 +88,11 @@ class DefoldProgramRunnersTest {
             val envData = EnvironmentVariablesData.create(mapOf("FOO" to "BAR"), true)
             val runtimeCommands = listOf("bundle")
             val runtimeDebugFlag = true
-            val runConfig =
-                mockk<MobDebugRunConfiguration>(relaxed = true) {
-                    every { this@mockk.envData } returns envData
-                    every { this@mockk.runtimeBuildCommands } returns runtimeCommands
-                    every { this@mockk.runtimeBuildCommands = any() } just Runs
-                    every { this@mockk.runtimeEnableDebugScript } returns runtimeDebugFlag
-                    every { this@mockk.runtimeEnableDebugScript = any() } just Runs
-                }
+            val runConfig = mobDebugConfiguration(
+                envData = envData,
+                runtimeCommands = runtimeCommands,
+                runtimeEnableDebugScript = runtimeDebugFlag
+            )
             val environment = executionEnvironment(project, DefaultRunExecutor.EXECUTOR_ID, runConfig)
 
             val processHandlerSlot = slot<DeferredProcessHandler>()
@@ -127,6 +125,9 @@ class DefoldProgramRunnersTest {
             assertThat(request.debugPort).isNull()
             assertThat(request.envData).isEqualTo(envData)
             assertThat(request.buildCommands).containsExactly("bundle")
+
+            request.onTermination(-99)
+            verify(exactly = 1) { anyConstructed<DeferredProcessHandler>().terminate(-99) }
         }
 
         @Test
@@ -136,14 +137,11 @@ class DefoldProgramRunnersTest {
 
             val runtimeCommands = listOf("bundle")
             val runtimeDebugFlag = false
-            val runConfig =
-                mockk<MobDebugRunConfiguration>(relaxed = true) {
-                    every { this@mockk.envData } returns EnvironmentVariablesData.DEFAULT
-                    every { this@mockk.runtimeBuildCommands } returns runtimeCommands
-                    every { this@mockk.runtimeBuildCommands = any() } just Runs
-                    every { this@mockk.runtimeEnableDebugScript } returns runtimeDebugFlag
-                    every { this@mockk.runtimeEnableDebugScript = any() } just Runs
-                }
+            val runConfig = mobDebugConfiguration(
+                envData = EnvironmentVariablesData.DEFAULT,
+                runtimeCommands = runtimeCommands,
+                runtimeEnableDebugScript = runtimeDebugFlag
+            )
             val environment = executionEnvironment(project, DefaultRunExecutor.EXECUTOR_ID, runConfig)
 
             val runner = TestProjectRunProgramRunner()
@@ -188,6 +186,7 @@ class DefoldProgramRunnersTest {
                 mockk<XDebugSession>(relaxed = true) {
                     every { runContentDescriptor } returns descriptor
                     every { consoleView } returns console
+                    every { stop() } just Runs
                 }
 
             val manager = mockk<XDebuggerManager>()
@@ -207,19 +206,17 @@ class DefoldProgramRunnersTest {
             val envData = EnvironmentVariablesData.create(mapOf("FOO" to "BAR"), true)
             val runtimeCommands = listOf("bundle", "hotreload")
             val runtimeDebugFlag = false
-            val runConfig =
-                mockk<MobDebugRunConfiguration> {
-                    every { host } returns "localhost"
-                    every { port } returns debugPort
-                    every { localRoot } returns "/local"
-                    every { remoteRoot } returns "/remote"
-                    every { getMappingSettings() } returns mapOf("/local" to "/remote")
-                    every { this@mockk.envData } returns envData
-                    every { this@mockk.runtimeBuildCommands } returns runtimeCommands
-                    every { this@mockk.runtimeBuildCommands = any() } just Runs
-                    every { this@mockk.runtimeEnableDebugScript } returns runtimeDebugFlag
-                    every { this@mockk.runtimeEnableDebugScript = any() } just Runs
-                }
+            val runConfig = mobDebugConfiguration(
+                envData = envData,
+                runtimeCommands = runtimeCommands,
+                runtimeEnableDebugScript = runtimeDebugFlag
+            ) {
+                every { host } returns "localhost"
+                every { port } returns debugPort
+                every { localRoot } returns "/local"
+                every { remoteRoot } returns "/remote"
+                every { getMappingSettings() } returns mapOf("/local" to "/remote")
+            }
 
             val requestSlot = slot<RunRequest>()
             every { ProjectRunner.run(capture(requestSlot)) } answers {
@@ -245,6 +242,56 @@ class DefoldProgramRunnersTest {
             assertThat(request.debugPort).isEqualTo(debugPort)
             assertThat(request.envData).isEqualTo(envData)
             assertThat(request.buildCommands).containsExactly("bundle", "hotreload")
+
+            request.onTermination(-1)
+            verify(exactly = 1) { session.stop() }
+        }
+
+        @Test
+        fun `doExecute stops debug session when terminated before attach`() {
+            val descriptor = mockk<RunContentDescriptor>()
+            val session = mockk<XDebugSession>(relaxed = true) {
+                every { runContentDescriptor } returns descriptor
+                every { consoleView } returns console
+                every { stop() } just Runs
+            }
+
+            val manager = mockk<XDebuggerManager>()
+            every { manager.startSession(any(), any()) } answers {
+                val starter = secondArg<XDebugProcessStarter>()
+                starter.start(session)
+                session
+            }
+            every { XDebuggerManager.getInstance(project) } returns manager
+
+            val editorConfig = mockk<DefoldEditorConfig>()
+            every { DefoldPathResolver.ensureEditorConfig(any()) } returns editorConfig
+
+            val runConfig = mobDebugConfiguration(
+                envData = EnvironmentVariablesData.DEFAULT,
+                runtimeCommands = listOf("build")
+            ) {
+                every { host } returns "localhost"
+                every { port } returns 8123
+                every { localRoot } returns ""
+                every { remoteRoot } returns ""
+                every { getMappingSettings() } returns emptyMap()
+            }
+
+            val requestSlot = slot<RunRequest>()
+            every { ProjectRunner.run(capture(requestSlot)) } answers {
+                requestSlot.captured.onTermination(-1)
+                mockk()
+            }
+
+            val environment = executionEnvironment(project, DefaultDebugExecutor.EXECUTOR_ID, runConfig)
+
+            val runner = TestProjectDebugProgramRunner()
+            val result = runner.execute(mockk(relaxed = true), environment)
+
+            assertThat(result).isEqualTo(descriptor)
+            verify(exactly = 1) { session.stop() }
+            verify(exactly = 1) { ProjectRunner.run(any()) }
         }
 
         @Test
@@ -268,19 +315,17 @@ class DefoldProgramRunnersTest {
 
             val runtimeCommands = listOf("build")
             val runtimeDebugFlag: Boolean? = null
-            val runConfig =
-                mockk<MobDebugRunConfiguration>(relaxed = true) {
-                    every { this@mockk.envData } returns EnvironmentVariablesData.DEFAULT
-                    every { this@mockk.runtimeBuildCommands } returns runtimeCommands
-                    every { this@mockk.runtimeBuildCommands = any() } just Runs
-                    every { this@mockk.runtimeEnableDebugScript } returns runtimeDebugFlag
-                    every { this@mockk.runtimeEnableDebugScript = any() } just Runs
-                    every { host } returns "localhost"
-                    every { port } returns 8123
-                    every { localRoot } returns ""
-                    every { remoteRoot } returns ""
-                    every { getMappingSettings() } returns emptyMap()
-                }
+            val runConfig = mobDebugConfiguration(
+                envData = EnvironmentVariablesData.DEFAULT,
+                runtimeCommands = runtimeCommands,
+                runtimeEnableDebugScript = runtimeDebugFlag
+            ) {
+                every { host } returns "localhost"
+                every { port } returns 8123
+                every { localRoot } returns ""
+                every { remoteRoot } returns ""
+                every { getMappingSettings() } returns emptyMap()
+            }
 
             val environment = executionEnvironment(project, DefaultDebugExecutor.EXECUTOR_ID, runConfig)
 
@@ -312,6 +357,20 @@ private fun mockConsoleFactory(
     every { TextConsoleBuilderFactory.getInstance() } returns factory
     every { factory.createBuilder(project) } returns builder
     every { builder.console } returns console
+}
+
+private fun mobDebugConfiguration(
+    envData: EnvironmentVariablesData = EnvironmentVariablesData.DEFAULT,
+    runtimeCommands: List<String> = listOf("build"),
+    runtimeEnableDebugScript: Boolean? = null,
+    configure: MobDebugRunConfiguration.() -> Unit = {}
+): MobDebugRunConfiguration = mockk(relaxed = true) {
+    every { this@mockk.envData } returns envData
+    every { this@mockk.runtimeBuildCommands } returns runtimeCommands
+    every { this@mockk.runtimeBuildCommands = any() } just Runs
+    every { this@mockk.runtimeEnableDebugScript } returns runtimeEnableDebugScript
+    every { this@mockk.runtimeEnableDebugScript = any() } just Runs
+    configure()
 }
 
 private fun mockEngineHandler(): OSProcessHandler = mockk(relaxed = true) {

@@ -43,7 +43,8 @@ open class ProjectRunProgramRunner : BaseDefoldProgramRunner() {
                 enableDebugScript = enableDebugScript,
                 envData = config.envData,
                 buildCommands = buildCommands,
-                onEngineStarted = processHandler::attach
+                onEngineStarted = processHandler::attach,
+                onTermination = processHandler::terminate
             ) ?: return null
 
             ProjectRunner.run(request)
