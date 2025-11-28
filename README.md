@@ -2,6 +2,16 @@
 
 Build Defold games directly inside IntelliJ IDEA. This plugin focuses on the authoring and debugging workflows so you can write Lua, navigate code, and launch the game engine without leaving the IDE.
 
+## Features
+
+- **📁 Project awareness** – Detects Defold workspaces and keeps paths in sync.
+- **🧠 Smart Lua editing** – EmmyLua2 + LSP4IJ provide completion, annotations, syntax highlighting, linting, navigation, refactors, and other editor goodies for your Lua scripts.
+- **📄 Script templates** – Create scripts from IntelliJ with the expected boilerplate.
+- **🪲 Debugger** – Full mobdebug experience without starting the Defold editor: breakpoints, run-to-cursor, expression evaluation, watches, inline values, call stacks, and coroutine support.
+- **🚀 Build + Run + Debug** – Trigger clean, build, run, and debug from IntelliJ with automatic engine launching and port management.
+- **🔥 Hot reloading** – Reflect changes to Lua scripts with a simple hotkey.
+- **🖥️ Multi-platform** – Works on Windows, macOS, (Linux untested yet).
+
 ## Requirements
 
 - IntelliJ IDEA 2025.2 or newer
@@ -17,16 +27,6 @@ The plugin auto-detects the project, configures toolchains, and generates the `.
 
 - This plugin is primarily focused on coding and debugging. Keep using the official Defold editor for the rest of your workflow.
 - You do not need to sprinkle `mobdebug` snippets or maintain annotation files. The plugin manages LuaLS configuration and debugger scripts for you—just leave the generated `.luarc.json` in place.
-
-## Features
-
-- **📁 Project awareness** – Detects Defold workspaces and keeps paths in sync.
-- **🧠 Smart Lua editing** – EmmyLua2 + LSP4IJ provide completion, annotations, syntax highlighting, linting, navigation, refactors, and other editor goodies for your Lua scripts.
-- **📄 Script templates** – Create scripts from IntelliJ with the expected boilerplate.
-- **🪲 Debugger** – Full mobdebug experience without starting the Defold editor: breakpoints, run-to-cursor, expression evaluation, watches, inline values, call stacks, and coroutine support.
-- **🚀 Build + Run + Debug** – Trigger clean, build, run, and debug from IntelliJ with automatic engine launching and port management.
-- **🔥 Hot reloading** – Reflect changes to Lua scripts with a simple hotkey.
-- **🖥️ Multi-platform** – Works on Windows, macOS, (Linux untested yet).
 
 ## Dependencies
 
