@@ -135,8 +135,7 @@ object ProjectRunner {
         return isInitDebugValueInvalid() || isInBuild
     }
 
-    private fun readIni(gameProjectFile: VirtualFile): Ini =
-        runReadAction { gameProjectFile.inputStream.use { Ini(it) } }
+    private fun readIni(gameProjectFile: VirtualFile): Ini = runReadAction { gameProjectFile.inputStream.use { Ini(it) } }
 
     private fun Ini.ensureBootstrapSection(): Section = this[INI_BOOTSTRAP_SECTION] ?: run {
         add(INI_BOOTSTRAP_SECTION)
@@ -145,8 +144,7 @@ object ProjectRunner {
 
     private fun Section.containsInitScriptEntry(): Boolean = contains(INI_DEBUG_INIT_SCRIPT_KEY)
 
-    private fun Section.isInitDebugValueInvalid(): Boolean =
-        this[INI_DEBUG_INIT_SCRIPT_KEY] != INI_DEBUG_INIT_SCRIPT_VALUE
+    private fun Section.isInitDebugValueInvalid(): Boolean = this[INI_DEBUG_INIT_SCRIPT_KEY] != INI_DEBUG_INIT_SCRIPT_VALUE
 
     private suspend fun writeIni(
         gameProjectFile: VirtualFile,
