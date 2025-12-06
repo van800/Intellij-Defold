@@ -117,22 +117,22 @@ class DefoldProjectActivity : ProjectActivity {
         connection.subscribe(
             topic = VFS_CHANGES,
             handler =
-                object : BulkFileListener {
-                    override fun after(events: List<VFileEvent>) {
-                        events.forEach { event ->
-                            if (event is VFileCreateEvent &&
-                                event.file?.name == ".idea" &&
-                                event.file?.parent?.path == basePath
-                            ) {
-                                // .idea directory was created, add the icon
-                                createIconIfNeeded(basePath)
+            object : BulkFileListener {
+                override fun after(events: List<VFileEvent>) {
+                    events.forEach { event ->
+                        if (event is VFileCreateEvent &&
+                            event.file?.name == ".idea" &&
+                            event.file?.parent?.path == basePath
+                        ) {
+                            // .idea directory was created, add the icon
+                            createIconIfNeeded(basePath)
 
-                                // Disconnect listener after handling
-                                connection.disconnect()
-                            }
+                            // Disconnect listener after handling
+                            connection.disconnect()
                         }
                     }
                 }
+            }
         )
     }
 
