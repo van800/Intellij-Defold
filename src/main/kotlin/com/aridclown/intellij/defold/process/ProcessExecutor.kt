@@ -15,33 +15,33 @@ import kotlinx.coroutines.Job
  * Utility class for executing processes with consistent error handling and console output
  */
 class ProcessExecutor(
-    val console: ConsoleView
+    val console: ConsoleView? = null
 ) {
     fun executeInBackground(request: BackgroundProcessRequest): Job = with(request) {
         project.launch {
             withBackgroundProgress(project, title, false) {
                 runCatching {
                     DefoldProcessHandler(command).apply {
-                        console.attachToProcess(this)
+                        console?.attachToProcess(this)
                         addProcessListener(ProcessTerminationListener(onSuccess, onFailure))
                         startNotify()
                         waitFor()
                     }
                 }.onFailure {
-                    console.printError("Process execution failed: ${it.message}")
+                    console?.printError("Process execution failed: ${it.message}")
                 }
             }
         }
     }
 
     fun execute(command: GeneralCommandLine): OSProcessHandler = DefoldProcessHandler(command).apply {
-        console.attachToProcess(this)
+        console?.attachToProcess(this)
         startNotify()
     }
 
     fun executeAndWait(command: GeneralCommandLine): Int {
         val handler = DefoldProcessHandler(command).apply {
-            console.attachToProcess(this)
+            console?.attachToProcess(this)
             startNotify()
             waitFor()
         }

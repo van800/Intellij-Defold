@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalCoroutinesApi::class, InternalCoroutinesApi::class)
-
 package com.aridclown.intellij.defold
 
 import com.aridclown.intellij.defold.util.NotificationService
@@ -20,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.IOException
 
+@OptIn(ExperimentalCoroutinesApi::class, InternalCoroutinesApi::class)
 class DefoldEditorLauncherTest {
     private val projectPath = "/workspace/myproject"
 

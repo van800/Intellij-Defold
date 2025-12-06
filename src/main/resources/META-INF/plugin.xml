@@ -99,8 +99,11 @@
                     class="com.aridclown.intellij.defold.actions.CleanBuildProjectAction">
                 <keyboard-shortcut keymap="$default" first-keystroke="alt shift B" replace-all="true"/>
             </action>
-            <reference ref="Synchronize"/>
+            <action id="ResolveDefoldDependencies"
+                    text="Resolve Dependencies"
+                    class="com.aridclown.intellij.defold.actions.ResolveDependenciesAction"/>
             <separator/>
+            <reference ref="Synchronize"/>
             <action id="OpenDefoldEditor"
                     text="Open Defold Editor"
                     class="com.aridclown.intellij.defold.actions.OpenDefoldEditorAction">

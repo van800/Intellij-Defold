@@ -27,7 +27,7 @@ class ProjectBuilder(
         val command = createBuildCommand(request.config, projectFolder.path, request.commands)
             .applyEnvironment(request.envData)
 
-        val buildResult = awaitBuildCompletion(request, command)
+        val buildResult = awaitBuildCompletion(request, command, "Building Defold project")
 
         return buildResult.fold(
             onSuccess = {
@@ -35,7 +35,7 @@ class ProjectBuilder(
             },
             onFailure = { throwable ->
                 if (throwable is BuildProcessFailedException) {
-                    processExecutor.console.printError(throwable.message.orEmpty())
+                    processExecutor.console?.printError(throwable.message.orEmpty())
                     runCatching { request.onFailure(throwable.exitCode) }
                         .exceptionOrNull()
                         ?.let { return@fold Result.failure(it) }
@@ -48,13 +48,14 @@ class ProjectBuilder(
 
     private suspend fun awaitBuildCompletion(
         request: BuildRequest,
-        command: GeneralCommandLine
+        command: GeneralCommandLine,
+        buildMessage: String
     ): Result<Unit> = suspendCancellableCoroutine { continuation ->
         val job = runCatching {
             processExecutor.executeInBackground(
                 BackgroundProcessRequest(
                     project = request.project,
-                    title = "Building Defold project",
+                    title = buildMessage,
                     command = command,
                     onSuccess = {
                         if (continuation.isActive) continuation.resume(Result.success(Unit))
