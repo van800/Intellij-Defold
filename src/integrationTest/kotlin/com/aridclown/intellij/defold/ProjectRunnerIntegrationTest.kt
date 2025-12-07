@@ -51,7 +51,7 @@ class ProjectRunnerIntegrationTest {
         }
 
         mockkConstructor(ProjectBuilder::class)
-        coEvery { anyConstructed<ProjectBuilder>().buildProject(any()) } returns Result.success(Unit)
+        coEvery { anyConstructed<ProjectBuilder>().buildProject(any(), any()) } returns Result.success(Unit)
 
         mockkConstructor(EngineRunner::class)
         every { anyConstructed<EngineRunner>().launchEngine(any(), any()) } returns processHandler
@@ -73,7 +73,7 @@ class ProjectRunnerIntegrationTest {
         delay(500)
 
         coVerify(exactly = 1) { anyConstructed<EngineExtractor>().extractAndPrepareEngine(project, config, any()) }
-        coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any()) }
+        coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any(), any()) }
         verify(exactly = 1) { anyConstructed<EngineRunner>().launchEngine(any(), any()) }
         verify(exactly = 1) { ResourceUtil.copyResourcesToProject(project, any(), any(), any()) }
         assertThat(callbackInvoked).isTrue
@@ -95,7 +95,7 @@ class ProjectRunnerIntegrationTest {
         ProjectRunner.run(createRunRequest(project, enableDebugScript = true, debugPort = 8888)).join()
 
         verify(exactly = 1) { engineDiscoveryService.hasEngineForPort(8888) }
-        coVerify(exactly = 0) { anyConstructed<ProjectBuilder>().buildProject(any()) }
+        coVerify(exactly = 0) { anyConstructed<ProjectBuilder>().buildProject(any(), any()) }
     }
 
     @Test
@@ -163,7 +163,7 @@ class ProjectRunnerIntegrationTest {
 
         verify(exactly = 1) { console.print(match { it.contains("Warning: Game project file not found") }, any()) }
         // Build should still proceed
-        coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any()) }
+        coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any(), any()) }
     }
 
     @Test
@@ -178,7 +178,7 @@ class ProjectRunnerIntegrationTest {
         ProjectRunner.run(createRunRequest(project)).join()
 
         verify(exactly = 1) { console.print(match { it.contains("Build failed: No engine") }, any()) }
-        coVerify(exactly = 0) { anyConstructed<ProjectBuilder>().buildProject(any()) }
+        coVerify(exactly = 0) { anyConstructed<ProjectBuilder>().buildProject(any(), any()) }
     }
 
     @Test
@@ -187,7 +187,7 @@ class ProjectRunnerIntegrationTest {
         val project = projectFixture.get()
         replaceEngineDiscoveryService(project)
 
-        coEvery { anyConstructed<ProjectBuilder>().buildProject(any()) } returns
+        coEvery { anyConstructed<ProjectBuilder>().buildProject(any(), any()) } returns
             Result.failure(RuntimeException("Build failed with exit code 1"))
 
         ProjectRunner.run(createRunRequest(project)).join()
@@ -201,7 +201,7 @@ class ProjectRunnerIntegrationTest {
         val project = projectFixture.get()
         replaceEngineDiscoveryService(project)
 
-        coEvery { anyConstructed<ProjectBuilder>().buildProject(any()) } returns
+        coEvery { anyConstructed<ProjectBuilder>().buildProject(any(), any()) } returns
             Result.failure(RuntimeException("Custom error"))
 
         ProjectRunner.run(createRunRequest(project)).join()
@@ -220,7 +220,7 @@ class ProjectRunnerIntegrationTest {
 
         verify(atLeast = 1) { console.print(match { it.contains("Failed to update game.project") }, any()) }
         // Should still proceed with build
-        coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any()) }
+        coVerify(exactly = 1) { anyConstructed<ProjectBuilder>().buildProject(any(), any()) }
     }
 
     @Test
@@ -234,7 +234,8 @@ class ProjectRunnerIntegrationTest {
 
         coVerify(exactly = 1) {
             anyConstructed<ProjectBuilder>().buildProject(
-                match { it.commands == customCommands }
+                match { it.commands == customCommands },
+                any()
             )
         }
     }
@@ -257,7 +258,8 @@ class ProjectRunnerIntegrationTest {
         }
         coVerify(exactly = 1) {
             anyConstructed<ProjectBuilder>().buildProject(
-                match { it.envData == envData }
+                match { it.envData == envData },
+                any()
             )
         }
     }

@@ -20,14 +20,17 @@ import kotlin.io.path.Path
 class ProjectBuilder(
     private val processExecutor: ProcessExecutor
 ) {
-    suspend fun buildProject(request: BuildRequest): Result<Unit> {
+    suspend fun buildProject(
+        request: BuildRequest,
+        buildMessage: String = DEFAULT_BUILD_MESSAGE
+    ): Result<Unit> {
         val projectFolder = request.project.rootProjectFolder
             ?: return Result.failure(IllegalStateException("This is not a valid Defold project"))
 
         val command = createBuildCommand(request.config, projectFolder.path, request.commands)
             .applyEnvironment(request.envData)
 
-        val buildResult = awaitBuildCompletion(request, command)
+        val buildResult = awaitBuildCompletion(request, command, buildMessage)
 
         return buildResult.fold(
             onSuccess = {
@@ -35,7 +38,7 @@ class ProjectBuilder(
             },
             onFailure = { throwable ->
                 if (throwable is BuildProcessFailedException) {
-                    processExecutor.console.printError(throwable.message.orEmpty())
+                    processExecutor.console?.printError(throwable.message.orEmpty())
                     runCatching { request.onFailure(throwable.exitCode) }
                         .exceptionOrNull()
                         ?.let { return@fold Result.failure(it) }
@@ -48,13 +51,14 @@ class ProjectBuilder(
 
     private suspend fun awaitBuildCompletion(
         request: BuildRequest,
-        command: GeneralCommandLine
+        command: GeneralCommandLine,
+        buildMessage: String
     ): Result<Unit> = suspendCancellableCoroutine { continuation ->
         val job = runCatching {
             processExecutor.executeInBackground(
                 BackgroundProcessRequest(
                     project = request.project,
-                    title = "Building Defold project",
+                    title = buildMessage,
                     command = command,
                     onSuccess = {
                         if (continuation.isActive) continuation.resume(Result.success(Unit))
@@ -89,21 +93,18 @@ class ProjectBuilder(
         projectPath: String,
         commands: List<String>
     ): GeneralCommandLine {
-        val parameters =
-            listOf(
-                "-cp",
-                config.editorJar,
-                BOB_MAIN_CLASS,
-                "--variant=debug"
-            ) + commands
+        val parameters = listOf(
+            "-cp",
+            config.editorJar,
+            BOB_MAIN_CLASS,
+            "--variant=debug"
+        ) + commands
 
         return GeneralCommandLine(config.javaBin)
             .withParameters(parameters)
             .withWorkingDirectory(Path(projectPath))
     }
 }
-
-private val DEFAULT_BUILD_COMMANDS = listOf("build")
 
 data class BuildRequest(
     val project: Project,
@@ -116,6 +117,7 @@ data class BuildRequest(
 
 internal class BuildProcessFailedException(
     val exitCode: Int
-) : RuntimeException(
-    "Bob build failed (exit code $exitCode)"
-)
+) : RuntimeException("Bob build failed (exit code $exitCode)")
+
+private val DEFAULT_BUILD_COMMANDS = listOf("build")
+private const val DEFAULT_BUILD_MESSAGE = "Building Defold project"

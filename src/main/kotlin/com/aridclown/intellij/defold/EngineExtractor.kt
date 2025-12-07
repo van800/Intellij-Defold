@@ -68,7 +68,7 @@ class EngineExtractor(
 
             createEngineFiles(buildDir, internalExec, this)
         } catch (e: Exception) {
-            processExecutor.console.printError("Failed to extract dmengine: ${e.message}")
+            processExecutor.console?.printError("Failed to extract dmengine: ${e.message}")
             throw e
         }
     }
