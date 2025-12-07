@@ -115,6 +115,31 @@ class ProjectRunnerIntegrationTest {
     }
 
     @Test
+    fun `keeps dependency urls when toggling debug script`(): Unit = timeoutRunBlocking {
+        val rootDir = projectPathFixture.get()
+        val dependencyLine = "dependencies = https://example.com/archive.zip"
+        val content = """
+            [project]
+            title = Test Project
+            $dependencyLine
+
+            [bootstrap]
+            main_collection = /main/main.collectionc
+        """.trimIndent()
+        createGameProjectFile(rootDir, content)
+        val project = projectFixture.get()
+        replaceEngineDiscoveryService(project)
+
+        ProjectRunner.run(createRunRequest(project, enableDebugScript = true)).join()
+
+        val gameProjectFile = refreshVirtualFile(rootDir.resolve(GAME_PROJECT_FILE))
+        val updatedContent = String(gameProjectFile.contentsToByteArray())
+        assertThat(updatedContent)
+            .contains(dependencyLine)
+            .doesNotContain("https\\://example.com/archive.zip")
+    }
+
+    @Test
     fun `removes debug script when disabled`(): Unit = timeoutRunBlocking {
         val rootDir = projectPathFixture.get()
         createGameProjectFile(rootDir, createGameProjectWithDebugScript())

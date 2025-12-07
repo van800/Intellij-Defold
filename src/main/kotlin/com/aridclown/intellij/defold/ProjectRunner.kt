@@ -20,6 +20,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import kotlinx.coroutines.Job
+import org.ini4j.Config
 import org.ini4j.Ini
 import org.ini4j.Profile.Section
 import java.nio.file.Files
@@ -135,7 +136,11 @@ object ProjectRunner {
         return isInitDebugValueInvalid() || isInBuild
     }
 
-    private fun readIni(gameProjectFile: VirtualFile): Ini = runReadAction { gameProjectFile.inputStream.use { Ini(it) } }
+    private fun readIni(gameProjectFile: VirtualFile): Ini = runReadAction {
+        gameProjectFile.inputStream.use { input ->
+            createIni().apply { load(input) }
+        }
+    }
 
     private fun Ini.ensureBootstrapSection(): Section = this[INI_BOOTSTRAP_SECTION] ?: run {
         add(INI_BOOTSTRAP_SECTION)
@@ -154,6 +159,12 @@ object ProjectRunner {
             ini.store(output)
         }
         gameProjectFile.refresh(false, false)
+    }
+
+    private fun createIni(): Ini = Ini().apply {
+        config = Config().apply {
+            isEscape = false
+        }
     }
 
     private suspend fun proceedWithBuild(
