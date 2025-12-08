@@ -4,11 +4,13 @@ import com.aridclown.intellij.defold.DefoldConstants.INI_BOOTSTRAP_SECTION
 import com.aridclown.intellij.defold.DefoldConstants.INI_DEBUG_INIT_SCRIPT_KEY
 import com.aridclown.intellij.defold.DefoldConstants.INI_DEBUG_INIT_SCRIPT_VALUE
 import com.aridclown.intellij.defold.DefoldCoroutineService.Companion.launch
+import com.aridclown.intellij.defold.DefoldEditorLauncher
 import com.aridclown.intellij.defold.DefoldProjectService.Companion.defoldProjectService
 import com.aridclown.intellij.defold.EngineDiscoveryService.Companion.getEngineDiscoveryService
 import com.aridclown.intellij.defold.process.ProcessExecutor
 import com.aridclown.intellij.defold.util.ResourceUtil.copyResourcesToProject
 import com.aridclown.intellij.defold.util.printError
+import com.aridclown.intellij.defold.util.printInfo
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.GeneralCommandLine.ParentEnvironmentType.CONSOLE
@@ -20,9 +22,11 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import org.ini4j.Config
 import org.ini4j.Ini
 import org.ini4j.Profile.Section
+import org.jetbrains.annotations.VisibleForTesting
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
@@ -37,6 +41,10 @@ import kotlin.io.path.notExists
  */
 object ProjectRunner {
     fun run(request: RunRequest): Job = request.project.launch {
+        if (request.delegateToEditor && tryRunViaEditor(request)) {
+            return@launch
+        }
+
         val processExecutor = ProcessExecutor(request.console)
         val builder = ProjectBuilder(processExecutor)
         val extractor = EngineExtractor(processExecutor)
@@ -156,6 +164,79 @@ object ProjectRunner {
         config = Config().apply {
             isEscape = false
         }
+    }
+
+    private suspend fun tryRunViaEditor(request: RunRequest): Boolean {
+        if (!request.delegateToEditor || request.debugPort != null) {
+            return false
+        }
+
+        val projectPath = request.project.basePath ?: return false
+        val client = ensureEditorClient(request, projectPath) ?: return false
+        val command = editorCommandFor(request.buildCommands, request.enableDebugScript)
+
+        if (!client.supports(command)) {
+            return false
+        }
+
+        val accepted = client.sendCommand(command)
+        if (!accepted) {
+            return false
+        }
+
+        request.console.printInfo("Delegated '$command' to the Defold editor via HTTP API. Monitor the editor for build output.")
+        request.onTermination(0)
+        return true
+    }
+
+    private suspend fun ensureEditorClient(
+        request: RunRequest,
+        projectPath: String
+    ): EditorHttpClient? {
+        EditorHttpClient.connect(projectPath)?.let { return it }
+
+        if (!launchEditor(request, projectPath)) {
+            return null
+        }
+
+        request.console.printInfo("Waiting for the Defold editor to start...")
+
+        repeat(30) {
+            delay(1000)
+            EditorHttpClient.connect(projectPath)?.let { client ->
+                request.console.printInfo("Connected to the Defold editor.")
+                return client
+            }
+        }
+
+        request.console.printError("Timed out waiting for the Defold editor to start")
+        return null
+    }
+
+    private suspend fun launchEditor(
+        request: RunRequest,
+        projectPath: String
+    ): Boolean {
+        request.console.printInfo("Opening the Defold editor to handle the run configuration...")
+        return runCatching {
+            DefoldEditorLauncher(request.project)
+                .openDefoldEditor(projectPath)
+                .join()
+            true
+        }.getOrElse { error ->
+            request.console.printError("Failed to open Defold editor: ${error.message ?: error.javaClass.simpleName}")
+            false
+        }
+    }
+
+    @VisibleForTesting
+    internal fun editorCommandFor(
+        buildCommands: List<String>,
+        enableDebugScript: Boolean
+    ): String = when {
+        buildCommands.any { it.equals("distclean", true) } -> "rebuild"
+        enableDebugScript -> "debugger-start"
+        else -> "build"
     }
 
     private suspend fun proceedWithBuild(

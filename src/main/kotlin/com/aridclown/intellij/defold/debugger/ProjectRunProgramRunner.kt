@@ -35,6 +35,7 @@ open class ProjectRunProgramRunner : BaseDefoldProgramRunner() {
 
         val buildCommands = config.runtimeBuildCommands ?: listOf("build")
         val enableDebugScript = config.runtimeEnableDebugScript ?: false
+        val delegateToEditor = config.delegateToEditor
 
         try {
             val request = RunRequest.loadFromEnvironment(
@@ -43,6 +44,7 @@ open class ProjectRunProgramRunner : BaseDefoldProgramRunner() {
                 enableDebugScript = enableDebugScript,
                 envData = config.envData,
                 buildCommands = buildCommands,
+                delegateToEditor = delegateToEditor,
                 onEngineStarted = processHandler::attach,
                 onTermination = processHandler::terminate
             ) ?: return null

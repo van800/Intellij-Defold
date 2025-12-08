@@ -4,6 +4,7 @@ import com.aridclown.intellij.defold.DefoldConstants.DEFAULT_MOBDEBUG_PORT
 import com.intellij.execution.configuration.EnvironmentVariablesData
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.components.JBCheckBox
 import org.assertj.core.api.Assertions.assertThat
 import java.awt.Component
 import java.awt.Container
@@ -17,11 +18,10 @@ class MobDebugSettingsEditorTest : BasePlatformTestCase() {
     override fun setUp() {
         super.setUp()
         editor = MobDebugSettingsEditor()
-        configuration =
-            MobDebugRunConfiguration(
-                project,
-                DefoldMobDebugConfigurationType().configurationFactories.first()
-            )
+        configuration = MobDebugRunConfiguration(
+            project,
+            DefoldMobDebugConfigurationType().configurationFactories.first()
+        )
     }
 
     fun `test populates editor fields from configuration`() {
@@ -30,6 +30,7 @@ class MobDebugSettingsEditorTest : BasePlatformTestCase() {
             localRoot = "/local/path"
             remoteRoot = "/remote/path"
             envData = EnvironmentVariablesData.create(mapOf("FOO" to "bar"), true)
+            delegateToEditor = true
         }
 
         editor.resetEditorFrom(configuration)
@@ -37,6 +38,7 @@ class MobDebugSettingsEditorTest : BasePlatformTestCase() {
         assertThat(portField().text).isEqualTo("8172")
         assertThat(localField().text).isEqualTo("/local/path")
         assertThat(remoteField().text).isEqualTo("/remote/path")
+        assertThat(delegateCheckbox().isSelected).isTrue
     }
 
     fun `test falls back to project base path when local root blank`() {
@@ -67,6 +69,7 @@ class MobDebugSettingsEditorTest : BasePlatformTestCase() {
         assertThat(configuration.port).isEqualTo(9999)
         assertThat(configuration.localRoot).isEqualTo("/new/local")
         assertThat(configuration.remoteRoot).isEqualTo("/new/remote")
+        assertThat(configuration.delegateToEditor).isFalse
     }
 
     fun `test restores default port when user input is invalid`() {
@@ -156,6 +159,9 @@ class MobDebugSettingsEditorTest : BasePlatformTestCase() {
     private fun remoteField() = textFields()[2]
 
     private fun textFields() = editor.component.components.filterIsInstance<JTextField>()
+
+    private fun delegateCheckbox() = collectComponents<JBCheckBox>(editor.component)
+        .first { it.text.contains("Run in Defold editor") }
 
     private inline fun <reified T : Component> collectComponents(root: Component): List<T> {
         val matches = mutableListOf<T>()

@@ -14,6 +14,7 @@ data class RunRequest(
     val debugPort: Int? = null,
     val envData: EnvironmentVariablesData = EnvironmentVariablesData.DEFAULT,
     val buildCommands: List<String> = listOf("build"),
+    val delegateToEditor: Boolean = false,
     val onEngineStarted: (OSProcessHandler) -> Unit = {},
     val onTermination: (Int) -> Unit = {}
 ) {
@@ -26,6 +27,7 @@ data class RunRequest(
             debugPort: Int? = null,
             envData: EnvironmentVariablesData,
             buildCommands: List<String> = listOf("build"),
+            delegateToEditor: Boolean = false,
             onEngineStarted: (OSProcessHandler) -> Unit = {},
             onTermination: (Int) -> Unit = {}
         ): RunRequest? {
@@ -40,6 +42,7 @@ data class RunRequest(
                 debugPort,
                 envData,
                 buildCommands,
+                delegateToEditor,
                 onEngineStarted,
                 onTermination
             )

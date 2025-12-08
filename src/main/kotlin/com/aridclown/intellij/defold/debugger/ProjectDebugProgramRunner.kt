@@ -37,6 +37,7 @@ open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
         val terminationController = DebugSessionTerminator()
         val buildCommands = config.runtimeBuildCommands ?: listOf("build")
         val enableDebugScript = config.runtimeEnableDebugScript ?: true
+        val delegateToEditor = config.delegateToEditor
 
         try {
             val request = RunRequest.loadFromEnvironment(
@@ -47,6 +48,7 @@ open class ProjectDebugProgramRunner : BaseDefoldProgramRunner() {
                 debugPort = config.port,
                 envData = config.envData,
                 buildCommands = buildCommands,
+                delegateToEditor = delegateToEditor,
                 onEngineStarted = { handler -> gameProcess = handler },
                 onTermination = { terminationController.terminate() }
             ) ?: return null

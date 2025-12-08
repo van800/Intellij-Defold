@@ -23,12 +23,11 @@ object SimpleHttpClient {
         url: String,
         timeout: Duration = globalTimeout
     ): SimpleHttpResponse {
-        val request =
-            Request
-                .Builder()
-                .url(url)
-                .get()
-                .build()
+        val request = Request
+            .Builder()
+            .url(url)
+            .get()
+            .build()
 
         execute(request, timeout).use { response ->
             return SimpleHttpResponse(response.code, response.body.string())
@@ -41,12 +40,11 @@ object SimpleHttpClient {
         contentType: String,
         timeout: Duration = globalTimeout
     ): SimpleHttpResponse {
-        val request =
-            Request
-                .Builder()
-                .url(url)
-                .post(body.toRequestBody(contentType.toMediaType()))
-                .build()
+        val request = Request
+            .Builder()
+            .url(url)
+            .post(body.toRequestBody(contentType.toMediaType()))
+            .build()
 
         execute(request, timeout).use { response ->
             return SimpleHttpResponse(response.code, response.body.string())
@@ -58,12 +56,11 @@ object SimpleHttpClient {
         target: Path,
         timeout: Duration = globalTimeout
     ) {
-        val request =
-            Request
-                .Builder()
-                .url(url)
-                .get()
-                .build()
+        val request = Request
+            .Builder()
+            .url(url)
+            .get()
+            .build()
 
         execute(request, timeout).use { response ->
             response

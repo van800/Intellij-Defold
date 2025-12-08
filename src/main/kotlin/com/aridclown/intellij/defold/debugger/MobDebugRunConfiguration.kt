@@ -40,6 +40,8 @@ class MobDebugRunConfiguration(
     @Transient
     var runtimeEnableDebugScript: Boolean? = null
 
+    var delegateToEditor: Boolean = false
+
     fun getMappingSettings(): Map<String, String> = mapOf(localRoot to remoteRoot)
         .takeIf { it.hasNoBlanks() }
         ?: emptyMap()
@@ -57,6 +59,7 @@ class MobDebugRunConfiguration(
         JDOMExternalizerUtil.writeField(element, "port", port.toString())
         JDOMExternalizerUtil.writeField(element, "localRoot", localRoot)
         JDOMExternalizerUtil.writeField(element, "remoteRoot", remoteRoot)
+        JDOMExternalizerUtil.writeField(element, "delegateToEditor", delegateToEditor.toString())
         envData.writeExternal(element)
     }
 
@@ -66,6 +69,8 @@ class MobDebugRunConfiguration(
         port = JDOMExternalizerUtil.readField(element, "port")?.toIntOrNull() ?: port
         localRoot = JDOMExternalizerUtil.readField(element, "localRoot") ?: localRoot
         remoteRoot = JDOMExternalizerUtil.readField(element, "remoteRoot") ?: remoteRoot
+        delegateToEditor = JDOMExternalizerUtil.readField(element, "delegateToEditor")?.toBooleanStrictOrNull()
+            ?: delegateToEditor
         envData = EnvironmentVariablesData.readExternal(element)
     }
 

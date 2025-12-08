@@ -3,6 +3,7 @@ package com.aridclown.intellij.defold.debugger
 import com.aridclown.intellij.defold.DefoldConstants.DEFAULT_MOBDEBUG_PORT
 import com.intellij.execution.configuration.EnvironmentVariablesTextFieldWithBrowseButton
 import com.intellij.openapi.options.SettingsEditor
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.Align
@@ -15,16 +16,17 @@ class MobDebugSettingsEditor : SettingsEditor<MobDebugRunConfiguration>() {
     private val localRootField = JBTextField()
     private val remoteRootField = JBTextField()
     private val envField = EnvironmentVariablesTextFieldWithBrowseButton()
+    private val delegateCheck = JBCheckBox("Run in Defold editor")
 
     @VisibleForTesting
     public override fun resetEditorFrom(configuration: MobDebugRunConfiguration) {
         portField.text = configuration.port.toString()
-        localRootField.text =
-            configuration.localRoot.ifBlank {
-                configuration.project.basePath ?: ""
-            }
+        localRootField.text = configuration.localRoot.ifBlank {
+            configuration.project.basePath ?: ""
+        }
         remoteRootField.text = configuration.remoteRoot
         envField.data = configuration.envData
+        delegateCheck.isSelected = configuration.delegateToEditor
     }
 
     @VisibleForTesting
@@ -33,33 +35,30 @@ class MobDebugSettingsEditor : SettingsEditor<MobDebugRunConfiguration>() {
         localRoot = localRootField.text.trim()
         remoteRoot = remoteRootField.text.trim()
         envData = envField.data
+        delegateToEditor = delegateCheck.isSelected
     }
 
     @VisibleForTesting
     public override fun createEditor(): JComponent {
-        val portLabel =
-            JBLabel("Port:").apply {
-                displayedMnemonicIndex = 0
-                labelFor = portField
-            }
+        val portLabel = JBLabel("Port:").apply {
+            displayedMnemonicIndex = 0
+            labelFor = portField
+        }
 
-        val localLabel =
-            JBLabel("Local root:").apply {
-                displayedMnemonicIndex = 0
-                labelFor = localRootField
-            }
+        val localLabel = JBLabel("Local root:").apply {
+            displayedMnemonicIndex = 0
+            labelFor = localRootField
+        }
 
-        val remoteLabel =
-            JBLabel("Remote root:").apply {
-                displayedMnemonicIndex = 0
-                labelFor = remoteRootField
-            }
+        val remoteLabel = JBLabel("Remote root:").apply {
+            displayedMnemonicIndex = 0
+            labelFor = remoteRootField
+        }
 
-        val envLabel =
-            JBLabel("Environment:").apply {
-                displayedMnemonicIndex = 0
-                labelFor = envField.textField
-            }
+        val envLabel = JBLabel("Environment:").apply {
+            displayedMnemonicIndex = 0
+            labelFor = envField.textField
+        }
 
         return panel {
             row(portLabel) {
@@ -81,6 +80,9 @@ class MobDebugSettingsEditor : SettingsEditor<MobDebugRunConfiguration>() {
                 cell(envField)
                     .align(Align.FILL)
                     .resizableColumn()
+            }
+            row("") {
+                cell(delegateCheck)
             }
         }
     }
