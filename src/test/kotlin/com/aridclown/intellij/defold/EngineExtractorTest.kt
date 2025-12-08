@@ -43,6 +43,7 @@ class EngineExtractorTest {
         every { config.jarBin } returns "jar"
         every { launchConfig.executable } returns "dmengine"
         every { launchConfig.libexecBinPath } returns "libexec/x86_64-linux"
+        every { launchConfig.buildPlatform } returns "arm64-osx"
         every { project.basePath } returns tempDir.toString()
 
         // Default: extraction succeeds
@@ -58,6 +59,13 @@ class EngineExtractorTest {
         val extractedPath = tempDir.resolve("build/libexec/x86_64-linux/dmengine")
         extractedPath.parent.createDirectories()
         extractedPath.writeText("fake engine binary")
+    }
+
+    private fun setupRemoteEngine(): Path {
+        val remotePath = tempDir.resolve("build/arm64-osx/dmengine")
+        remotePath.parent.createDirectories()
+        remotePath.writeText("remote engine")
+        return remotePath
     }
 
     private fun getCachedEnginePath(): Path = tempDir.resolve("build/defold-ij/dmengine")
@@ -123,6 +131,30 @@ class EngineExtractorTest {
                 val permissions = Files.getPosixFilePermissions(enginePath)
                 assertThat(permissions).contains(OWNER_EXECUTE, OWNER_READ, OWNER_WRITE)
             }
+        }
+    }
+
+    @Nested
+    inner class RemoteEngineReuse {
+        @Test
+        fun `uses remotely built engine when available`() {
+            val remotePath = setupRemoteEngine()
+
+            val result = extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
+
+            assertThat(result.getOrNull()).isEqualTo(remotePath)
+            verify(exactly = 0) { processExecutor.executeAndWait(any()) }
+        }
+
+        @Test
+        @EnabledOnOs(OS.LINUX, OS.MAC)
+        fun `ensures remote engine is executable`() {
+            val remotePath = setupRemoteEngine()
+
+            extractor.extractAndPrepareEngine(project, config, EnvironmentVariablesData.DEFAULT)
+
+            val permissions = Files.getPosixFilePermissions(remotePath)
+            assertThat(permissions).contains(OWNER_EXECUTE, OWNER_READ)
         }
     }
 

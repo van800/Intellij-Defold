@@ -30,8 +30,22 @@ class EngineExtractor(
         val workspace = project.basePath?.let(Path::of)
             ?: error("Project has no base path")
 
-        createEnginePath(workspace, config)
-            .extractEngineFromJar(config, workspace, envData)
+        findBuiltEngine(workspace, config)
+            ?.also(::makeExecutable)
+            ?: createEnginePath(workspace, config)
+                .extractEngineFromJar(config, workspace, envData)
+    }
+
+    private fun findBuiltEngine(
+        workspace: Path,
+        config: DefoldEditorConfig
+    ): Path? {
+        val remoteEnginePath = workspace
+            .resolve("build")
+            .resolve(config.launchConfig.buildPlatform)
+            .resolve(config.launchConfig.executable)
+
+        return remoteEnginePath.takeIf(Files::exists)
     }
 
     private fun createEnginePath(

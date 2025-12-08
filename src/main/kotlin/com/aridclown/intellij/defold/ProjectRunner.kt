@@ -50,16 +50,7 @@ object ProjectRunner {
         }
         discoveryService.stopEnginesForPort(request.debugPort)
 
-        extractor.extractAndPrepareEngine(
-            request.project,
-            request.config,
-            request.envData
-        ).onSuccess { enginePath ->
-            proceedWithBuild(request, builder, engineRunner, enginePath)
-        }.onFailure { throwable ->
-            request.console.printError("Build failed: ${throwable.message}")
-            request.onTermination(-1)
-        }
+        proceedWithBuild(request, builder, extractor, engineRunner)
     }
 
     /**
@@ -170,8 +161,8 @@ object ProjectRunner {
     private suspend fun proceedWithBuild(
         request: RunRequest,
         builder: ProjectBuilder,
-        engineRunner: EngineRunner,
-        enginePath: Path
+        extractor: EngineExtractor,
+        engineRunner: EngineRunner
     ) = with(request) {
         prepareMobDebugResources(request.project)
 
@@ -193,13 +184,22 @@ object ProjectRunner {
 
         debugScriptGuard?.cleanup()
         if (buildResult.isSuccess) {
-            val handler = engineRunner.launchEngine(request, enginePath)
-            if (handler == null) {
-                onTermination(-1)
-                return@with
-            }
+            extractor.extractAndPrepareEngine(
+                project,
+                config,
+                envData
+            ).onSuccess { enginePath ->
+                val handler = engineRunner.launchEngine(request, enginePath)
+                if (handler == null) {
+                    onTermination(-1)
+                    return@with
+                }
 
-            handler.let(onEngineStarted)
+                handler.let(onEngineStarted)
+            }.onFailure { throwable ->
+                console.printError("Failed to prepare engine: ${throwable.message}")
+                onTermination(-1)
+            }
             return@with
         }
 
