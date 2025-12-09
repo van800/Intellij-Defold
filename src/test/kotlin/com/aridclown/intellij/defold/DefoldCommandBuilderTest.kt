@@ -53,7 +53,7 @@ class DefoldCommandBuilderTest {
         val command = builder.createLaunchCommand("/workspace/myproject")
 
         assertThat(command.exePath).isEqualTo("xdg-open")
-        assertThat(command.parametersList.list).containsExactly("/workspace/myproject")
+        assertThat(command.parametersList.list).containsExactly("/workspace/myproject/game.project")
     }
 
     @Test
